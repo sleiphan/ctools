@@ -247,3 +247,51 @@ static inline int __EXPAND_CONCAT(STACK_NAME,_pop) (STACK_NAME* s, STACK_TYPE* d
     // Return success
     return 0;
 }
+
+static inline int __EXPAND_CONCAT(STACK_NAME,_clear) (STACK_NAME* s, STACK_TYPE* dst) {
+    #ifdef STACK_EXT_THREAD_SAFE
+
+    // Lock
+    pthread_mutex_lock(&s->lock);
+
+    // If the stack is shutting down, skip
+    if (s->shutting_down) {
+        pthread_mutex_unlock(&s->lock);
+        return -2;
+    }
+
+    #endif
+
+    // Reset the size counter
+    s->size = 0;
+
+    #ifndef STACK_CAPACITY
+
+    // Decrease capacity if the stack size is a quarter of the capacity
+    if ((s->size <= s->capacity / 4) && (s->capacity / 2 >= STACK_MIN_CAPACITY)) {
+        STACK_TYPE* new_array = (STACK_TYPE*) realloc(s->array, (s->capacity / 2) * sizeof(STACK_TYPE));
+        
+        // If we failed to allocate more memory, return an error
+        if (!new_array) {
+            #ifdef STACK_EXT_THREAD_SAFE
+            pthread_mutex_unlock(&s->lock);
+            #endif
+
+            return -3;
+        }
+        
+        s->array = new_array;
+        s->capacity /= 2;
+    }
+
+    #endif
+
+    
+    // Unlock
+    #ifdef STACK_EXT_THREAD_SAFE
+    pthread_mutex_unlock(&s->lock);
+    #endif
+
+    // Return success
+    return 0;
+}
