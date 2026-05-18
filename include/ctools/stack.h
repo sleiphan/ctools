@@ -20,6 +20,8 @@
 #include <pthread.h>
 #endif
 
+#include <errno.h>
+
 #include "ctools/define_concat.h"
 
 
@@ -152,7 +154,8 @@ static inline int __EXPAND_CONCAT(STACK_NAME,_push)(STACK_NAME* s, STACK_TYPE va
     // Cancel if the stack is shutting down
     if (s->shutting_down) {
         pthread_mutex_unlock(&s->lock);
-        return -2;
+        errno = ECANCELED;
+        return -1;
     }
 
     #endif
@@ -168,7 +171,7 @@ static inline int __EXPAND_CONCAT(STACK_NAME,_push)(STACK_NAME* s, STACK_TYPE va
             #ifdef STACK_EXT_THREAD_SAFE
             pthread_mutex_unlock(&s->lock);
             #endif
-            return -3;
+            return -1;
         }
         
         // Continue with the reallocated array
@@ -199,7 +202,8 @@ static inline int __EXPAND_CONCAT(STACK_NAME,_pop) (STACK_NAME* s, STACK_TYPE* d
     // If the stack is shutting down, skip
     if (s->shutting_down) {
         pthread_mutex_unlock(&s->lock);
-        return -2;
+        errno = ECANCELED;
+        return -1;
     }
 
     #endif
@@ -210,6 +214,7 @@ static inline int __EXPAND_CONCAT(STACK_NAME,_pop) (STACK_NAME* s, STACK_TYPE* d
         pthread_mutex_unlock(&s->lock);
         #endif
 
+        errno = ENOENT;
         return -1;
     }
 
@@ -228,8 +233,7 @@ static inline int __EXPAND_CONCAT(STACK_NAME,_pop) (STACK_NAME* s, STACK_TYPE* d
             #ifdef STACK_EXT_THREAD_SAFE
             pthread_mutex_unlock(&s->lock);
             #endif
-
-            return -3;
+            return -1;
         }
         
         s->array = new_array;
@@ -257,7 +261,8 @@ static inline int __EXPAND_CONCAT(STACK_NAME,_clear) (STACK_NAME* s, STACK_TYPE*
     // If the stack is shutting down, skip
     if (s->shutting_down) {
         pthread_mutex_unlock(&s->lock);
-        return -2;
+        errno = ECANCELED;
+        return -1;
     }
 
     #endif
@@ -276,8 +281,7 @@ static inline int __EXPAND_CONCAT(STACK_NAME,_clear) (STACK_NAME* s, STACK_TYPE*
             #ifdef STACK_EXT_THREAD_SAFE
             pthread_mutex_unlock(&s->lock);
             #endif
-
-            return -3;
+            return -1;
         }
         
         s->array = new_array;
