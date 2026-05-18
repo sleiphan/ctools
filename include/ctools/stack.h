@@ -252,7 +252,7 @@ static inline int __EXPAND_CONCAT(STACK_NAME,_pop) (STACK_NAME* s, STACK_TYPE* d
     return 0;
 }
 
-static inline int __EXPAND_CONCAT(STACK_NAME,_clear) (STACK_NAME* s, STACK_TYPE* dst) {
+static inline int __EXPAND_CONCAT(STACK_NAME,_clear) (STACK_NAME* s) {
     #ifdef STACK_EXT_THREAD_SAFE
 
     // Lock

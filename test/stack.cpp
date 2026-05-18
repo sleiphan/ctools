@@ -28,3 +28,29 @@ TEST(stack, elements_are_popped_in_the_correct_order) {
     // Cleanup
     stack_destroy(&s);
 }
+
+TEST(stack, clear_function_removes_all_entries) {
+    stack s;
+    stack_create(&s, 0);
+
+    const int VALUE = 42;
+    const int ELEMENTS_TO_PUSH = 10;
+
+    int err = -1;
+    for (int i = 0; i < ELEMENTS_TO_PUSH; i++) {
+        err = stack_push(&s, VALUE);
+        EXPECT_EQ(err, 0);
+    }
+
+    int size = stack_size(&s);
+    EXPECT_EQ(size, ELEMENTS_TO_PUSH);
+
+    err = stack_clear(&s);
+    EXPECT_EQ(err, 0);
+
+    size = stack_size(&s);
+    EXPECT_EQ(size, 0);
+    
+    // Cleanup
+    stack_destroy(&s);
+}
