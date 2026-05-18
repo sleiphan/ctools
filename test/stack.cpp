@@ -54,3 +54,20 @@ TEST(stack, clear_function_removes_all_entries) {
     // Cleanup
     stack_destroy(&s);
 }
+
+TEST(stack, clearing_an_empty_stack) {
+    stack s;
+    stack_create(&s, 0);
+
+    int size = stack_size(&s);
+    EXPECT_EQ(size, 0);
+
+    int err = stack_clear(&s);
+    EXPECT_EQ(err, 0);
+
+    size = stack_size(&s);
+    EXPECT_EQ(size, 0);
+
+    // Cleanup
+    stack_destroy(&s);
+}
