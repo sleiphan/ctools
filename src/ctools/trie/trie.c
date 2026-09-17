@@ -14,7 +14,12 @@ struct print_node {
 #undef STACK_INDEX
 #undef STACK_TYPE
 
-void trie_node_init(struct trie_node *node) {
+/**
+ * Resets the fields of the given trie node to its default values.
+ *
+ * @param node The node to reset.
+ */
+static inline void _trie_node_init(struct trie_node *node) {
     *node = (struct trie_node){.key = 0, .subnodes_count = 0, .subnodes = NULL, .value = NULL};
 }
 
@@ -26,7 +31,7 @@ struct trie_node *trie_create() {
         return NULL;
     }
 
-    trie_node_init(new_node);
+    _trie_node_init(new_node);
 
     return new_node;
 }
@@ -35,7 +40,7 @@ void trie_node_destroy(struct trie_node *node) {
     if (node->subnodes_count)
         free(node->subnodes);
 
-    trie_node_init(node);
+    _trie_node_init(node);
 }
 
 void trie_destroy(struct trie_node *top_node) {
@@ -109,18 +114,18 @@ int trie_add(struct trie_node *top_node, const char *string, void *value) {
                 return -1;
             }
 
-            trie_node_init(&new_array[node_to_extend->subnodes_count]);
+            _trie_node_init(&new_array[node_to_extend->subnodes_count]);
 
             node_to_extend->subnodes = new_array;
             node_to_extend->subnodes_count = new_array_size;
         } else {
             node_to_extend->subnodes = (struct trie_node *)malloc(sizeof(struct trie_node));
-            trie_node_init(node_to_extend->subnodes);
+            _trie_node_init(node_to_extend->subnodes);
             node_to_extend->subnodes_count = 1;
         }
 
         node_to_extend = &node_to_extend->subnodes[node_to_extend->subnodes_count - 1];
-        trie_node_init(node_to_extend);
+        _trie_node_init(node_to_extend);
         node_to_extend->key = string[search_depth];
     }
 

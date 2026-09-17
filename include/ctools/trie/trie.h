@@ -17,13 +17,6 @@ struct trie_node {
 
 struct trie_node *trie_create();
 
-/**
- * Resets the fields of the given trie node to its default values.
- *
- * @param node The node to reset.
- */
-void trie_node_init(struct trie_node *node);
-
 void trie_destroy(struct trie_node *node);
 
 int trie_add(struct trie_node *top_node, const char *string, void *value);
