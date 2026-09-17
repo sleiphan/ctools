@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-    #include "ctools/bitset.h"
+#include "ctools/bitset.h"
 }
 
 TEST(bitset, all_bits_work) {
@@ -117,7 +117,7 @@ TEST(bitset, search_includes_just_within_the_upper_bound) {
 
 TEST(bitset, search_traversing_entries) {
     struct bitset bs;
-    bitset_create(&bs, 64*2);
+    bitset_create(&bs, 64 * 2);
 
     const unsigned int min = 60;
     const unsigned int max = 70;
@@ -153,7 +153,7 @@ TEST(bitset, search_includes_first_bit) {
 
 TEST(bitset, search_includes_final_bit_in_entry) {
     struct bitset bs;
-    bitset_create(&bs, 64*2);
+    bitset_create(&bs, 64 * 2);
 
     const unsigned int lower_bound = 60;
     const unsigned int upper_bound = 65;

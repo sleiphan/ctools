@@ -1,13 +1,12 @@
 #include <gtest/gtest.h>
 
-
 #define QUEUE_NAME second_queue_type
 #define QUEUE_TYPE int
 #define QUEUE_INDEX unsigned int
 // This #include section is only to verify that the header
 // supports multiple inclusions in a compilation unit
 extern "C" {
-    #include "ctools/queue.h"
+#include "ctools/queue.h"
 }
 
 #undef QUEUE_NAME
@@ -15,11 +14,9 @@ extern "C" {
 #define QUEUE_NAME queue
 #define QUEUE_INDEX unsigned char
 extern "C" {
-    #include "ctools/queue.h"
-    #include <errno.h>
+#include "ctools/queue.h"
+#include <errno.h>
 }
-
-
 
 TEST(queue, mask_is_created_correctly) {
     queue q;
@@ -36,8 +33,6 @@ TEST(queue, mask_is_created_correctly) {
     queue_destroy(&q);
 }
 
-
-
 TEST(queue, not_lying_about_minimum_capacity) {
     const int queue_min_size = 8;
 
@@ -48,13 +43,11 @@ TEST(queue, not_lying_about_minimum_capacity) {
 
     while ((numbers_pushed < queue_min_size) & !queue_push(&q, 0))
         numbers_pushed++;
-    
+
     EXPECT_EQ(numbers_pushed, queue_min_size);
 
     queue_destroy(&q);
 }
-
-
 
 TEST(queue, rejects_capacities_over_supported_values) {
     queue q;
@@ -65,8 +58,6 @@ TEST(queue, rejects_capacities_over_supported_values) {
     if (!err)
         queue_destroy(&q);
 }
-
-
 
 TEST(queue, base_case) {
     constexpr QUEUE_INDEX capacity = (1 << 3) - 1;
@@ -90,7 +81,7 @@ TEST(queue, base_case) {
 
     for (QUEUE_TYPE i = 0; i < capacity; i++)
         error |= queue_push(&q, i);
-    
+
     for (QUEUE_TYPE i = 0; i < capacity; i++) {
         QUEUE_TYPE sink;
         error |= queue_pop(&q, &sink);
@@ -100,11 +91,9 @@ TEST(queue, base_case) {
     // Verify that no errors occurred
     EXPECT_EQ(error, 0);
     EXPECT_EQ(errno, 0);
-    
+
     queue_destroy(&q);
 }
-
-
 
 TEST(queue, emptying_and_reusing) {
     const int test_value_1 = 42;
@@ -125,11 +114,9 @@ TEST(queue, emptying_and_reusing) {
         EXPECT_EQ(pop_1, test_value_1);
         EXPECT_EQ(pop_2, test_value_2);
     }
-    
+
     queue_destroy(&q);
 }
-
-
 
 TEST(queue, size_reports_correctly) {
     constexpr QUEUE_INDEX capacity = queue_max_size - 1;
@@ -156,7 +143,7 @@ TEST(queue, size_reports_correctly) {
         queue_push(&q, i);
         EXPECT_EQ(queue_size(&q), i + 1);
     }
-    
+
     for (QUEUE_TYPE i = capacity; i > 0; i--) {
         QUEUE_TYPE sink;
         queue_pop(&q, &sink);
@@ -165,6 +152,6 @@ TEST(queue, size_reports_correctly) {
 
     // Verify that no errors occurred
     EXPECT_EQ(errno, 0);
-    
+
     queue_destroy(&q);
 }

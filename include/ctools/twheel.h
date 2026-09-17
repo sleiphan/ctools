@@ -18,8 +18,6 @@
 #define TWHEEL_TICK unsigned int
 #endif
 
-
-
 #include "ctools/define_concat.h"
 #ifndef TWHEEL_NO_IMPLEMENTATION
 #include <errno.h>
@@ -32,104 +30,114 @@
 #include "ctools/bitset.h"
 #endif
 
-
-
 #ifndef TWHEEL_NO_INTERFACE
 
-struct __EXPAND_CONCAT(TWHEEL_NAME,_timer) {
+struct __EXPAND_CONCAT(TWHEEL_NAME, _timer) {
     TWHEEL_INDEX next;
     TWHEEL_INDEX prev;
     TWHEEL_INDEX generation;
     TWHEEL_INDEX bucket;
 };
 
-struct __EXPAND_CONCAT(TWHEEL_NAME,_bucket) {
+struct __EXPAND_CONCAT(TWHEEL_NAME, _bucket) {
     TWHEEL_INDEX head;
     TWHEEL_INDEX tail;
 };
 
-struct __EXPAND_CONCAT(TWHEEL_NAME,_handle) {
+struct __EXPAND_CONCAT(TWHEEL_NAME, _handle) {
     TWHEEL_INDEX timer_idx;
     TWHEEL_INDEX generation;
 };
 
 struct TWHEEL_NAME {
-    TWHEEL_TICK interval; // The amount of time between each bucket.
+    TWHEEL_TICK interval;    // The amount of time between each bucket.
     TWHEEL_TICK time_modulo; // The amount of time progressed towards the next bucket.
     TWHEEL_TICK max_timeout; // The largest timeout possible given the constructor parameters.
-    TWHEEL_INDEX capacity; // The amount of timeouts available in this timer wheel.
+    TWHEEL_INDEX capacity;   // The amount of timeouts available in this timer wheel.
 
     // The metadata of the timers.
-    struct __EXPAND_CONCAT(TWHEEL_NAME,_timer)* timers;
+    struct __EXPAND_CONCAT(TWHEEL_NAME, _timer) * timers;
     // The value to return to the caller if the timeout expires.
-    TWHEEL_TYPE* return_values;
+    TWHEEL_TYPE *return_values;
 
     // The timeout buckets
-    struct __EXPAND_CONCAT(TWHEEL_NAME,_bucket)* buckets;
+    struct __EXPAND_CONCAT(TWHEEL_NAME, _bucket) * buckets;
     TWHEEL_BUCKET_INDEX bucket_count;
     TWHEEL_BUCKET_INDEX current_bucket;
 
     // The stack of free data slots
-    TWHEEL_INDEX* free_stack;
+    TWHEEL_INDEX *free_stack;
     TWHEEL_INDEX free_stack_head;
 
     // The expiration queue
     TWHEEL_INDEX exp_head;
     TWHEEL_INDEX exp_tail;
 
-    // 
+    //
     struct bitset occupied_buckets;
 };
 
-              int         __EXPAND_CONCAT(TWHEEL_NAME,_create)  (struct TWHEEL_NAME* wheel, const TWHEEL_TICK interval, const unsigned int bucket_count, const TWHEEL_INDEX timeout_slot_capacity);
-static inline void        __EXPAND_CONCAT(TWHEEL_NAME,_destroy) (struct TWHEEL_NAME* tw);
-static inline bool        __EXPAND_CONCAT(TWHEEL_NAME,_is_full) (struct TWHEEL_NAME* tw);
-static inline bool        __EXPAND_CONCAT(TWHEEL_NAME,_is_empty)(struct TWHEEL_NAME* tw);
-static inline int         __EXPAND_CONCAT(TWHEEL_NAME,_advance) (struct TWHEEL_NAME* tw, TWHEEL_TICK time_units);
-static inline int         __EXPAND_CONCAT(TWHEEL_NAME,_schedule)(struct TWHEEL_NAME* tw, TWHEEL_TICK timeout, TWHEEL_TYPE value, struct __EXPAND_CONCAT(TWHEEL_NAME,_handle)* timer_handle);
-static inline int         __EXPAND_CONCAT(TWHEEL_NAME,_cancel)  (struct TWHEEL_NAME* tw, const struct __EXPAND_CONCAT(TWHEEL_NAME,_handle) timer_handle);
-static inline int         __EXPAND_CONCAT(TWHEEL_NAME,_pop)     (struct TWHEEL_NAME* tw, TWHEEL_TYPE* out_value);
-static inline TWHEEL_TICK __EXPAND_CONCAT(TWHEEL_NAME,_wait)    (struct TWHEEL_NAME* tw, TWHEEL_TICK* ticks);
+int __EXPAND_CONCAT(TWHEEL_NAME, _create)(struct TWHEEL_NAME *wheel, const TWHEEL_TICK interval,
+                                          const unsigned int bucket_count,
+                                          const TWHEEL_INDEX timeout_slot_capacity);
+static inline void __EXPAND_CONCAT(TWHEEL_NAME, _destroy)(struct TWHEEL_NAME *tw);
+static inline bool __EXPAND_CONCAT(TWHEEL_NAME, _is_full)(struct TWHEEL_NAME *tw);
+static inline bool __EXPAND_CONCAT(TWHEEL_NAME, _is_empty)(struct TWHEEL_NAME *tw);
+static inline int __EXPAND_CONCAT(TWHEEL_NAME, _advance)(struct TWHEEL_NAME *tw,
+                                                         TWHEEL_TICK time_units);
+static inline int
+    __EXPAND_CONCAT(TWHEEL_NAME,
+                    _schedule)(struct TWHEEL_NAME *tw, TWHEEL_TICK timeout, TWHEEL_TYPE value,
+                               struct __EXPAND_CONCAT(TWHEEL_NAME, _handle) * timer_handle);
+static inline int __EXPAND_CONCAT(TWHEEL_NAME,
+                                  _cancel)(struct TWHEEL_NAME *tw,
+                                           const struct __EXPAND_CONCAT(TWHEEL_NAME, _handle)
+                                               timer_handle);
+static inline int __EXPAND_CONCAT(TWHEEL_NAME, _pop)(struct TWHEEL_NAME *tw,
+                                                     TWHEEL_TYPE *out_value);
+static inline TWHEEL_TICK __EXPAND_CONCAT(TWHEEL_NAME, _wait)(struct TWHEEL_NAME *tw,
+                                                              TWHEEL_TICK *ticks);
 
 #endif // TWHEEL_NO_INTERFACE
-
-
 
 #ifndef TWHEEL_NO_IMPLEMENTATION
 
 #ifndef MIN
-#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-int __EXPAND_CONCAT(TWHEEL_NAME,_create)(struct TWHEEL_NAME* wheel, const TWHEEL_TICK interval, const unsigned int bucket_count, const TWHEEL_INDEX timeout_slot_capacity) {
+int __EXPAND_CONCAT(TWHEEL_NAME, _create)(struct TWHEEL_NAME *wheel, const TWHEEL_TICK interval,
+                                          const unsigned int bucket_count,
+                                          const TWHEEL_INDEX timeout_slot_capacity) {
     // Verify parameter values
-    int invalid_argument =
-        interval < 1 ||
-        bucket_count < 1 ||
-        timeout_slot_capacity < 1;
+    int invalid_argument = interval < 1 || bucket_count < 1 || timeout_slot_capacity < 1;
     if (invalid_argument) {
         errno = EINVAL;
         return -1;
     }
 
-    TWHEEL_INDEX* free_stack = (TWHEEL_INDEX*) malloc(timeout_slot_capacity * sizeof(TWHEEL_INDEX));
+    TWHEEL_INDEX *free_stack = (TWHEEL_INDEX *)malloc(timeout_slot_capacity * sizeof(TWHEEL_INDEX));
     if (!free_stack)
         return -1;
 
-    struct __EXPAND_CONCAT(TWHEEL_NAME,_bucket)* buckets = (struct __EXPAND_CONCAT(TWHEEL_NAME,_bucket)*) malloc(bucket_count * sizeof(struct __EXPAND_CONCAT(TWHEEL_NAME,_bucket)));
+    struct __EXPAND_CONCAT(TWHEEL_NAME, _bucket) *buckets =
+        (struct __EXPAND_CONCAT(TWHEEL_NAME, _bucket) *)malloc(
+            bucket_count * sizeof(struct __EXPAND_CONCAT(TWHEEL_NAME, _bucket)));
     if (!buckets) {
         free(free_stack);
         return -1;
     }
 
-    struct __EXPAND_CONCAT(TWHEEL_NAME,_timer)* timers = (struct __EXPAND_CONCAT(TWHEEL_NAME,_timer)*) malloc(timeout_slot_capacity * sizeof(struct __EXPAND_CONCAT(TWHEEL_NAME,_timer)));
+    struct __EXPAND_CONCAT(TWHEEL_NAME, _timer) *timers =
+        (struct __EXPAND_CONCAT(TWHEEL_NAME, _timer) *)malloc(
+            timeout_slot_capacity * sizeof(struct __EXPAND_CONCAT(TWHEEL_NAME, _timer)));
     if (!timers) {
         free(buckets);
         free(free_stack);
         return -1;
     }
 
-    TWHEEL_TYPE* return_values = (TWHEEL_TYPE*) malloc(timeout_slot_capacity * sizeof(TWHEEL_TYPE));
+    TWHEEL_TYPE *return_values = (TWHEEL_TYPE *)malloc(timeout_slot_capacity * sizeof(TWHEEL_TYPE));
     if (!return_values) {
         free(timers);
         free(buckets);
@@ -148,7 +156,7 @@ int __EXPAND_CONCAT(TWHEEL_NAME,_create)(struct TWHEEL_NAME* wheel, const TWHEEL
 
     for (TWHEEL_INDEX i = 0; i < timeout_slot_capacity; i++) {
         free_stack[i] = i;
-        timers[i] = (struct __EXPAND_CONCAT(TWHEEL_NAME,_timer)) {
+        timers[i] = (struct __EXPAND_CONCAT(TWHEEL_NAME, _timer)){
             .next = timeout_slot_capacity,
             .prev = timeout_slot_capacity,
             .generation = 0,
@@ -163,7 +171,7 @@ int __EXPAND_CONCAT(TWHEEL_NAME,_create)(struct TWHEEL_NAME* wheel, const TWHEEL
 
     const TWHEEL_TICK max_timeout = interval * bucket_count - 1;
 
-    *wheel = (struct TWHEEL_NAME) {
+    *wheel = (struct TWHEEL_NAME){
         .interval = interval,
         .time_modulo = 0,
         .max_timeout = max_timeout,
@@ -183,7 +191,7 @@ int __EXPAND_CONCAT(TWHEEL_NAME,_create)(struct TWHEEL_NAME* wheel, const TWHEEL
     return 0;
 }
 
-static inline void __EXPAND_CONCAT(TWHEEL_NAME,_destroy)(struct TWHEEL_NAME* tw) {
+static inline void __EXPAND_CONCAT(TWHEEL_NAME, _destroy)(struct TWHEEL_NAME *tw) {
     bitset_destroy(&tw->occupied_buckets);
     free(tw->return_values);
     free(tw->timers);
@@ -191,25 +199,29 @@ static inline void __EXPAND_CONCAT(TWHEEL_NAME,_destroy)(struct TWHEEL_NAME* tw)
     free(tw->free_stack);
 }
 
-static inline bool __EXPAND_CONCAT(TWHEEL_NAME,_is_full)(struct TWHEEL_NAME* tw) {
+static inline bool __EXPAND_CONCAT(TWHEEL_NAME, _is_full)(struct TWHEEL_NAME *tw) {
     return tw->free_stack_head >= tw->capacity;
 }
 
-static inline bool __EXPAND_CONCAT(TWHEEL_NAME,_is_empty)(struct TWHEEL_NAME* tw) {
+static inline bool __EXPAND_CONCAT(TWHEEL_NAME, _is_empty)(struct TWHEEL_NAME *tw) {
     return tw->free_stack_head == 0;
 }
 
-static inline int __EXPAND_CONCAT(TWHEEL_NAME,_advance)(struct TWHEEL_NAME* tw, TWHEEL_TICK time_units) {
+static inline int __EXPAND_CONCAT(TWHEEL_NAME, _advance)(struct TWHEEL_NAME *tw,
+                                                         TWHEEL_TICK time_units) {
     time_units = MIN(time_units, tw->max_timeout + 1);
 
     const TWHEEL_TICK time_passed_since_current_bucket = time_units + tw->time_modulo;
     const TWHEEL_BUCKET_INDEX buckets_expired = time_passed_since_current_bucket / tw->interval;
-    const TWHEEL_BUCKET_INDEX next_current_bucket = (tw->current_bucket + buckets_expired) % tw->bucket_count;
+    const TWHEEL_BUCKET_INDEX next_current_bucket =
+        (tw->current_bucket + buckets_expired) % tw->bucket_count;
 
     // The amount of buckets that pushed timers to the expired-queue
     TWHEEL_BUCKET_INDEX buckets_expired_count = 0;
 
-    for (TWHEEL_BUCKET_INDEX bucket_idx = tw->current_bucket, first_iteration = 0; bucket_idx != next_current_bucket || !first_iteration; bucket_idx = (bucket_idx + 1) % tw->bucket_count, first_iteration++) {
+    for (TWHEEL_BUCKET_INDEX bucket_idx = tw->current_bucket, first_iteration = 0;
+         bucket_idx != next_current_bucket || !first_iteration;
+         bucket_idx = (bucket_idx + 1) % tw->bucket_count, first_iteration++) {
         // Skip if the bucket is empty
         if (tw->buckets[bucket_idx].head == tw->capacity)
             continue;
@@ -219,8 +231,10 @@ static inline int __EXPAND_CONCAT(TWHEEL_NAME,_advance)(struct TWHEEL_NAME* tw, 
             tw->exp_head = tw->buckets[bucket_idx].head;
             tw->exp_tail = tw->buckets[bucket_idx].tail; // expired_timers_tail = bucket_tail
         } else {
-            tw->timers[tw->buckets[bucket_idx].head].prev = tw->exp_tail; // bucket_head.prev = expired_timers_tail
-            tw->timers[tw->exp_tail].next = tw->buckets[bucket_idx].head; // expired_timers_tail.next = bucket_head
+            tw->timers[tw->buckets[bucket_idx].head].prev =
+                tw->exp_tail; // bucket_head.prev = expired_timers_tail
+            tw->timers[tw->exp_tail].next =
+                tw->buckets[bucket_idx].head; // expired_timers_tail.next = bucket_head
 
             tw->exp_tail = tw->buckets[bucket_idx].tail; // expired_timers_tail = bucket_tail
         }
@@ -243,8 +257,11 @@ static inline int __EXPAND_CONCAT(TWHEEL_NAME,_advance)(struct TWHEEL_NAME* tw, 
     return buckets_expired_count;
 }
 
-static inline int __EXPAND_CONCAT(TWHEEL_NAME,_schedule)(struct TWHEEL_NAME* tw, TWHEEL_TICK timeout, TWHEEL_TYPE value, struct __EXPAND_CONCAT(TWHEEL_NAME,_handle)* timer_handle) {
-    if (__EXPAND_CONCAT(TWHEEL_NAME,_is_full)(tw)) {
+static inline int
+__EXPAND_CONCAT(TWHEEL_NAME,
+                _schedule)(struct TWHEEL_NAME *tw, TWHEEL_TICK timeout, TWHEEL_TYPE value,
+                           struct __EXPAND_CONCAT(TWHEEL_NAME, _handle) * timer_handle) {
+    if (__EXPAND_CONCAT(TWHEEL_NAME, _is_full)(tw)) {
         errno = ENOBUFS;
         return -1;
     }
@@ -268,11 +285,14 @@ static inline int __EXPAND_CONCAT(TWHEEL_NAME,_schedule)(struct TWHEEL_NAME* tw,
     tw->return_values[new_timer_idx] = value;
 
     // Select the correct bucket
-    const TWHEEL_INDEX bucket_overflow = tw->current_bucket + (timeout + tw->time_modulo) / tw->interval;
-    const TWHEEL_INDEX bucket = bucket_overflow - tw->bucket_count * (bucket_overflow >= tw->bucket_count);
+    const TWHEEL_INDEX bucket_overflow =
+        tw->current_bucket + (timeout + tw->time_modulo) / tw->interval;
+    const TWHEEL_INDEX bucket =
+        bucket_overflow - tw->bucket_count * (bucket_overflow >= tw->bucket_count);
 
     // Add the timeout timer to the correct bucket
-    tw->timers[new_timer_idx].next = tw->capacity; // No timers after this one, since it will be placed at the tail.
+    tw->timers[new_timer_idx].next =
+        tw->capacity; // No timers after this one, since it will be placed at the tail.
     tw->timers[new_timer_idx].prev = tw->buckets[bucket].tail;
     tw->timers[new_timer_idx].generation = tw->timers[new_timer_idx].generation;
     tw->timers[new_timer_idx].bucket = bucket;
@@ -282,7 +302,7 @@ static inline int __EXPAND_CONCAT(TWHEEL_NAME,_schedule)(struct TWHEEL_NAME* tw,
 
     // In case this is the first timer
     if (tw->buckets[bucket].head == tw->capacity) {
-        tw->buckets[bucket].head = new_timer_idx; // Update the head
+        tw->buckets[bucket].head = new_timer_idx;        // Update the head
         bitset_assign(&tw->occupied_buckets, bucket, 1); // Mark the bucket as occupied
     }
 
@@ -295,7 +315,10 @@ static inline int __EXPAND_CONCAT(TWHEEL_NAME,_schedule)(struct TWHEEL_NAME* tw,
     return 0;
 }
 
-static inline int __EXPAND_CONCAT(TWHEEL_NAME,_cancel)(struct TWHEEL_NAME* tw, const struct __EXPAND_CONCAT(TWHEEL_NAME,_handle) timer_handle) {
+static inline int __EXPAND_CONCAT(TWHEEL_NAME,
+                                  _cancel)(struct TWHEEL_NAME *tw,
+                                           const struct __EXPAND_CONCAT(TWHEEL_NAME, _handle)
+                                               timer_handle) {
     const TWHEEL_BUCKET_INDEX bucket = tw->timers[timer_handle.timer_idx].bucket;
 
     // Remove the target entry from the linked list
@@ -303,7 +326,7 @@ static inline int __EXPAND_CONCAT(TWHEEL_NAME,_cancel)(struct TWHEEL_NAME* tw, c
     const TWHEEL_INDEX prev = tw->timers[timer_handle.timer_idx].prev;
     const bool is_first_element = prev == tw->capacity;
     const bool is_final_element = next == tw->capacity;
-    
+
     // Remove pointers from the timers
     if (!is_first_element)
         tw->timers[prev].next = next;
@@ -329,7 +352,8 @@ static inline int __EXPAND_CONCAT(TWHEEL_NAME,_cancel)(struct TWHEEL_NAME* tw, c
     return 0;
 }
 
-static inline int __EXPAND_CONCAT(TWHEEL_NAME,_pop)(struct TWHEEL_NAME* tw, TWHEEL_TYPE* out_value) {
+static inline int __EXPAND_CONCAT(TWHEEL_NAME, _pop)(struct TWHEEL_NAME *tw,
+                                                     TWHEEL_TYPE *out_value) {
     if (tw->exp_head == tw->capacity) {
         errno = ENOBUFS;
         return -1;
@@ -351,23 +375,24 @@ static inline int __EXPAND_CONCAT(TWHEEL_NAME,_pop)(struct TWHEEL_NAME* tw, TWHE
     return 0;
 }
 
-static inline TWHEEL_TICK __EXPAND_CONCAT(TWHEEL_NAME,_wait)(struct TWHEEL_NAME* tw, TWHEEL_TICK* ticks) {
-    if (__EXPAND_CONCAT(TWHEEL_NAME,_is_empty)(tw))
+static inline TWHEEL_TICK __EXPAND_CONCAT(TWHEEL_NAME, _wait)(struct TWHEEL_NAME *tw,
+                                                              TWHEEL_TICK *ticks) {
+    if (__EXPAND_CONCAT(TWHEEL_NAME, _is_empty)(tw))
         return 1;
 
     TWHEEL_BUCKET_INDEX next_bucket = tw->bucket_count;
 
     // Find the next bucket
-    int err = bitset_search_up(&tw->occupied_buckets, &next_bucket, tw->current_bucket + 1, tw->bucket_count);
+    int err = bitset_search_up(&tw->occupied_buckets, &next_bucket, tw->current_bucket + 1,
+                               tw->bucket_count);
     if (err)
         err = bitset_search_up(&tw->occupied_buckets, &next_bucket, 0, tw->current_bucket);
 
     // If we found a bucket, return the time to the next timeout
     if (!err) {
         const TWHEEL_BUCKET_INDEX bucket_distance =
-            next_bucket > tw->current_bucket ?
-            next_bucket - tw->current_bucket :
-            tw->bucket_count - tw->current_bucket + next_bucket;
+            next_bucket > tw->current_bucket ? next_bucket - tw->current_bucket
+                                             : tw->bucket_count - tw->current_bucket + next_bucket;
 
         *ticks = bucket_distance * tw->interval - tw->time_modulo;
     }

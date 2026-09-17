@@ -5,18 +5,14 @@
 #ifndef CTOOLS_BITSET_IMPLEMENTATION
 #define CTOOLS_BITSET_IMPLEMENTATION
 
-
-
-#include <stdlib.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
 
-
-
-int bitset_create(struct bitset* bs, const bitset_index bit_count) {
+int bitset_create(struct bitset *bs, const bitset_index bit_count) {
     const bitset_index entry_count = bit_count / (sizeof(bitset_entry) * 8) + 1;
 
-    bitset_entry* entries = (bitset_entry*) malloc(entry_count * sizeof(bitset_entry));
+    bitset_entry *entries = (bitset_entry *)malloc(entry_count * sizeof(bitset_entry));
     if (!entries)
         return -1;
 
@@ -29,11 +25,9 @@ int bitset_create(struct bitset* bs, const bitset_index bit_count) {
     return 0;
 }
 
-static inline void bitset_destroy(struct bitset* bs) {
-    free(bs->entries);
-}
+static inline void bitset_destroy(struct bitset *bs) { free(bs->entries); }
 
-static inline int bitset_assign(struct bitset* bs, const bitset_index index, int value) {
+static inline int bitset_assign(struct bitset *bs, const bitset_index index, int value) {
     if (index < 0 || index >= bs->bit_count) {
         errno = EINVAL;
         return -1;
@@ -51,7 +45,7 @@ static inline int bitset_assign(struct bitset* bs, const bitset_index index, int
     return 0;
 }
 
-static inline int bitset_get(struct bitset* bs, const bitset_index index) {
+static inline int bitset_get(struct bitset *bs, const bitset_index index) {
     if (index < 0 || index >= bs->bit_count) {
         errno = EINVAL;
         return -1;
@@ -64,13 +58,10 @@ static inline int bitset_get(struct bitset* bs, const bitset_index index) {
     return (bs->entries[entry_idx_maj] & bit_mask) != 0;
 }
 
-int bitset_search_up(const struct bitset* bs, bitset_index* dst, const bitset_index from, const bitset_index to) {
+int bitset_search_up(const struct bitset *bs, bitset_index *dst, const bitset_index from,
+                     const bitset_index to) {
     int invalid_argument =
-        from < 0 ||
-        from >= bs->bit_count ||
-        to < 0 ||
-        to > bs->bit_count ||
-        from >= to;
+        from < 0 || from >= bs->bit_count || to < 0 || to > bs->bit_count || from >= to;
 
     if (invalid_argument) {
         errno = EINVAL;
@@ -80,8 +71,8 @@ int bitset_search_up(const struct bitset* bs, bitset_index* dst, const bitset_in
     const bitset_index entry_count = bs->bit_count / (sizeof(bitset_entry) * 8) + 1;
     const bitset_index from_idx_maj = from / (sizeof(bitset_entry) * 8);
     const bitset_index from_idx_min = from & (sizeof(bitset_entry) * 8 - 1);
-    const bitset_index   to_idx_maj =   to / (sizeof(bitset_entry) * 8);
-    const bitset_index   to_idx_min =   to & (sizeof(bitset_entry) * 8 - 1);
+    const bitset_index to_idx_maj = to / (sizeof(bitset_entry) * 8);
+    const bitset_index to_idx_min = to & (sizeof(bitset_entry) * 8 - 1);
 
     // Backup the entry we're searching from
     const bitset_entry from_entry_bckp = bs->entries[from_idx_maj];
@@ -91,7 +82,8 @@ int bitset_search_up(const struct bitset* bs, bitset_index* dst, const bitset_in
 
     // Find the next entry containing a set bit
     bitset_index entry_idx = from_idx_maj;
-    for (; entry_idx < to_idx_maj && bs->entries[entry_idx] == 0; entry_idx++);
+    for (; entry_idx < to_idx_maj && bs->entries[entry_idx] == 0; entry_idx++)
+        ;
 
     // Avoid assigning `dst` if no set bit was found
     if (entry_idx == entry_count) {

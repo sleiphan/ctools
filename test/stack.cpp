@@ -4,7 +4,7 @@
 #define STACK_NAME stack
 #define STACK_TYPE int
 extern "C" {
-    #include "ctools/stack.h"
+#include "ctools/stack.h"
 }
 
 TEST(stack, elements_are_popped_in_the_correct_order) {
@@ -21,11 +21,11 @@ TEST(stack, elements_are_popped_in_the_correct_order) {
     // Read from the stack into 'actual'
     for (int i = 0; i < NUM_VALUES; i++)
         stack_pop(&s, &actual[i]);
-    
+
     // Verify
     for (int i = 0; i < NUM_VALUES; i++)
         EXPECT_EQ(i, actual[i]);
-    
+
     // Cleanup
     stack_destroy(&s);
 }
@@ -51,7 +51,7 @@ TEST(stack, clear_function_removes_all_entries) {
 
     size = stack_size(&s);
     EXPECT_EQ(size, 0);
-    
+
     // Cleanup
     stack_destroy(&s);
 }

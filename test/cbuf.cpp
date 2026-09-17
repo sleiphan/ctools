@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 extern "C" {
-    #include "ctools/cbuf.h"
+#include "ctools/cbuf.h"
 }
 
 TEST(cbuf, trigger_rollover) {
@@ -23,11 +23,11 @@ TEST(cbuf, trigger_rollover) {
     struct ct_cbuf circular_buffer;
     int res = ct_cbuf_init(&circular_buffer, 1);
     EXPECT_EQ(res, 0);
-    
+
     for (unsigned int i = 0; i < int_count; i += transfer_count) {
         res = ct_cbuf_write(&circular_buffer, &expected[i], transfer_count_b);
         EXPECT_EQ(res, transfer_count_b);
-        
+
         res = ct_cbuf_read(&circular_buffer, actual, transfer_count_b);
         EXPECT_EQ(res, transfer_count_b);
 

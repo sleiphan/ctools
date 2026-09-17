@@ -4,12 +4,11 @@
 #define KQUEUE_TYPE int
 #define KQUEUE_INDEX uint8_t
 extern "C" {
-    #include "ctools/kqueue.h"
+#include "ctools/kqueue.h"
 }
 #undef KQUEUE_NAME
 #undef KQUEUE_TYPE
 #undef KQUEUE_INDEX
-
 
 TEST(kqueue, queues_work_in_parallel) {
     int expected_1 = 1;
@@ -42,13 +41,13 @@ TEST(kqueue, pop_as_first_action) {
 }
 
 TEST(kqueue, FIFO_respected) {
-    int expected[] = { 1, 2, 3, 4 };
+    int expected[] = {1, 2, 3, 4};
     const int expected_count = sizeof(expected) / sizeof(expected[0]);
 
     int actual[expected_count];
 
-    int* expected_p = expected;
-    int* actual_p = actual;
+    int *expected_p = expected;
+    int *actual_p = actual;
 
     struct my_kqueue q;
     EXPECT_EQ(my_kqueue_create(&q, 8, 2), 0);
@@ -83,12 +82,12 @@ TEST(kqueue, fill_to_index_type_limits) {
         EXPECT_EQ(my_kqueue_push(&q, 0, expected[i]), 0);
 
     // Check that new elements cannot be pushed
-    EXPECT_NE(my_kqueue_push(&q, 0, (int) my_kqueue_max_size + 1), 0);
+    EXPECT_NE(my_kqueue_push(&q, 0, (int)my_kqueue_max_size + 1), 0);
 
     // Pop
     for (int i = 0; i < my_kqueue_max_size; i++)
         EXPECT_EQ(my_kqueue_pop(&q, 0, &actual[i]), 0);
-    
+
     // Check that new elements cannot be popped
     EXPECT_NE(my_kqueue_pop(&q, 0, actual), 0);
 
@@ -115,12 +114,12 @@ TEST(kqueue, fill_to_index_type_limits_over_multiple_queues) {
         EXPECT_EQ(my_kqueue_push(&q, i % num_queues, expected[i]), 0);
 
     // Check that new elements cannot be pushed
-    EXPECT_NE(my_kqueue_push(&q, 0, (int) my_kqueue_max_size + 1), 0);
+    EXPECT_NE(my_kqueue_push(&q, 0, (int)my_kqueue_max_size + 1), 0);
 
     // Pop
     for (int i = 0; i < my_kqueue_max_size; i++)
         EXPECT_EQ(my_kqueue_pop(&q, i % num_queues, &actual[i]), 0);
-    
+
     // Check that new elements cannot be popped
     EXPECT_NE(my_kqueue_pop(&q, 0, actual), 0);
 

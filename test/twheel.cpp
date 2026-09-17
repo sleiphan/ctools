@@ -1,12 +1,12 @@
-#include <gtest/gtest.h>
 #include <algorithm>
+#include <gtest/gtest.h>
 #include <random>
 
 #define TWHEEL_NAME twheel
 #define TWHEEL_INDEX unsigned int
 #define TWHEEL_TYPE unsigned int
 extern "C" {
-    #include "ctools/twheel.h"
+#include "ctools/twheel.h"
 }
 
 TEST(twheel, basic_usage) {
@@ -122,10 +122,11 @@ TEST(twheel, webserver_case) {
     const TWHEEL_INDEX timer_count = 1'000'000;
     const TWHEEL_INDEX time_span_ms = 10'000;
     const TWHEEL_INDEX interval_ms = 100;
-    struct twheel_handle* handles = (struct twheel_handle*) malloc(timer_count * sizeof(struct twheel_handle));
+    struct twheel_handle *handles =
+        (struct twheel_handle *)malloc(timer_count * sizeof(struct twheel_handle));
     TWHEEL_INDEX handles_count = 0;
 
-    TWHEEL_INDEX* timed_out_clients = (TWHEEL_INDEX*) malloc(timer_count * sizeof(TWHEEL_INDEX));
+    TWHEEL_INDEX *timed_out_clients = (TWHEEL_INDEX *)malloc(timer_count * sizeof(TWHEEL_INDEX));
     TWHEEL_INDEX timed_out_clients_count = 0;
 
     struct twheel tw;
@@ -140,7 +141,7 @@ TEST(twheel, webserver_case) {
         // Choose clients that will time out.
         bool will_time_out = (rand() % timeout_client_for_every) == 1;
         // bool will_time_out = true;
-        struct twheel_handle* handle = will_time_out ? NULL : &handles[handles_count++];
+        struct twheel_handle *handle = will_time_out ? NULL : &handles[handles_count++];
         timed_out_clients[timed_out_clients_count] = i;
         timed_out_clients_count += will_time_out;
 
@@ -165,9 +166,10 @@ TEST(twheel, webserver_case) {
     EXPECT_GT(err, 0);
 
     // Pop all timed out timers
-    TWHEEL_TYPE* out_values = (TWHEEL_TYPE*) malloc(timed_out_clients_count * sizeof(TWHEEL_TYPE));
+    TWHEEL_TYPE *out_values = (TWHEEL_TYPE *)malloc(timed_out_clients_count * sizeof(TWHEEL_TYPE));
     TWHEEL_TYPE pop_idx = 0;
-    for (;!twheel_pop(&tw, &out_values[pop_idx]); pop_idx++);
+    for (; !twheel_pop(&tw, &out_values[pop_idx]); pop_idx++)
+        ;
 
     std::sort(out_values, &out_values[timed_out_clients_count]);
     std::sort(timed_out_clients, &timed_out_clients[timed_out_clients_count]);
