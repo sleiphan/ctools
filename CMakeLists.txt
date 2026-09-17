@@ -7,7 +7,7 @@ endif()
 set(CTOOLS_LIB "ctools")
 
 project(${CTOOLS_LIB}
-    VERSION 0.0.11
+    VERSION 0.0.12
     DESCRIPTION "My personal C toolkit"
     LANGUAGES CXX C)
 
