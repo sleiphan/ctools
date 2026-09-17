@@ -76,5 +76,13 @@
         "gheap.h": "c",
         "gstack.h": "c",
         "unistd.h": "c"
+    },
+    "[cpp]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "ms-vscode.cpptools"
+    },
+    "[c]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "ms-vscode.cpptools"
     }
 }
