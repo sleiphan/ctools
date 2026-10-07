@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include "ctools/trie/rtree.h"
+#include "ctools/rtree.h"
 }
 
 const struct rtree_setup_entry entries_g[] = {
@@ -34,46 +34,38 @@ TEST(rtree, basic_usage) {
     struct rtree_setup_entry entries[sizeof(entries_g) / sizeof(struct rtree_setup_entry)];
     memcpy(entries, entries_g, sizeof(entries_g));
 
-    // Assign different values to the value of each entry
+    // Assign different values to each entry
     for (int i = 0; i < sizeof(entries) / sizeof(struct rtree_setup_entry); i++)
         entries[i].value = i + 1;
 
-    struct rtree_node *radix_tree =
-        rtree_create(entries, sizeof(entries) / sizeof(struct rtree_setup_entry));
+    struct rtree radix_tree;
+    if (rtree_create(&radix_tree, entries, sizeof(entries) / sizeof(struct rtree_setup_entry)))
+        FAIL();
 
     // Check the value associated with each entry
     for (int i = 0; i < sizeof(entries) / sizeof(struct rtree_setup_entry); i++) {
-        uint16_t value = rtree_search(radix_tree, entries[i].str, strlen(entries[i].str));
+        uint16_t value = rtree_search(&radix_tree, entries[i].str, strlen(entries[i].str));
         EXPECT_EQ(value, entries[i].value);
     }
 
-    rtree_destroy(radix_tree);
+    rtree_destroy(&radix_tree);
 }
 
-TEST(rtree, basic_usage_with_trie_creator) {
-    struct rtree_setup_entry entries[sizeof(entries_g) / sizeof(struct rtree_setup_entry)];
-    memcpy(entries, entries_g, sizeof(entries_g));
+TEST(rtree, error_on_duplicate_keys) {
+    struct rtree_setup_entry entries[] = {
+        (struct rtree_setup_entry){.str = "helloworld", .value = 42},
+        (struct rtree_setup_entry){.str = "helloworld", .value = 43},
+    };
 
     // Assign different values to the value of each entry
     for (int i = 0; i < sizeof(entries) / sizeof(struct rtree_setup_entry); i++)
         entries[i].value = i + 1;
 
-    struct trie_node *trie = trie_create();
+    struct rtree radix_tree;
+    const int rv =
+        rtree_create(&radix_tree, entries, sizeof(entries) / sizeof(struct rtree_setup_entry));
+    EXPECT_NE(rv, 0);
 
-    // Add nodes to the trie
-    for (int i = 0; i < sizeof(entries) / sizeof(struct rtree_setup_entry); i++)
-        trie_add(trie, entries[i].str, &entries[i].value);
-
-    struct rtree_node *radix_tree = rtree_create_from_trie(trie);
-
-    // Destroy the trie before running the rtree searches
-    trie_destroy(trie);
-
-    // Check the value associated with each entry
-    for (int i = 0; i < sizeof(entries) / sizeof(struct rtree_setup_entry); i++) {
-        uint16_t value = rtree_search(radix_tree, entries[i].str, strlen(entries[i].str));
-        EXPECT_EQ(value, entries[i].value);
-    }
-
-    rtree_destroy(radix_tree);
+    if (rv == 0)
+        rtree_destroy(&radix_tree);
 }

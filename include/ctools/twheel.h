@@ -20,6 +20,7 @@
 
 #include "ctools/define_concat.h"
 #ifndef TWHEEL_NO_IMPLEMENTATION
+#include "min.h"
 #include <errno.h>
 #include <stdlib.h>
 #endif
@@ -101,10 +102,6 @@ static inline TWHEEL_TICK __EXPAND_CONCAT(TWHEEL_NAME, _wait)(struct TWHEEL_NAME
 #endif // TWHEEL_NO_INTERFACE
 
 #ifndef TWHEEL_NO_IMPLEMENTATION
-
-#ifndef MIN
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
-#endif
 
 int __EXPAND_CONCAT(TWHEEL_NAME, _create)(struct TWHEEL_NAME *wheel, const TWHEEL_TICK interval,
                                           const unsigned int bucket_count,
