@@ -1,84 +1,102 @@
+#ifndef RTREE_NAME
+#define RTREE_NAME rtree
+#endif
+
+#ifndef RTREE_VALUE
+#include <stdint.h>
+#define RTREE_VALUE uint16_t
+#endif
+
+#ifndef CTOOLS_RTREE_SKIP
+#include <stdint.h>
+// The http standard recommends that servers support URIs with lengths of 8000 octets in protocol
+// elements. Since a URI can consist mostly of a request path, this field must have space for at
+// least 13 bits.
+#define CTOOLS_RTREE_SKIP uint16_t
+#endif
+
+#ifndef CTOOLS_RTREE_INDEX
+#include <stdint.h>
+// Large API servers can have upwards of 300 endpoints, which results in 600 nodes in the worst case
+// (binary tree structure). To index that amount of nodes, we need at least 10 bits. Using the full
+// 16 bits allows this router to support 32768 endpoints in the worst case.
+#define CTOOLS_RTREE_INDEX uint16_t
+#endif
+
+#include "define_concat.h"
+
 #ifndef RTREE_NO_INTERFACE
 
-struct rtree_node;
+struct __EXPAND_CONCAT(RTREE_NAME, _node);
 
-struct rtree {
-    struct rtree_node *nodes;
+struct RTREE_NAME {
+    struct __EXPAND_CONCAT(RTREE_NAME, _node) * nodes;
 };
 
-struct rtree_setup_entry {
+struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) {
     const char *str;
-    uint16_t value;
+    RTREE_VALUE value;
 };
 
-struct rtree;
+struct RTREE_NAME;
 
-int rtree_create(struct rtree *rtree, const struct rtree_setup_entry *entries,
-                 const uint16_t entry_count);
+int __EXPAND_CONCAT(RTREE_NAME,
+                    _create)(struct RTREE_NAME *rtree,
+                             const struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) * entries,
+                             const CTOOLS_RTREE_INDEX entry_count);
 
-void rtree_destroy(struct rtree *rtree);
+void __EXPAND_CONCAT(RTREE_NAME, _destroy)(struct RTREE_NAME *rtree);
 
-uint16_t rtree_search(const struct rtree *rtree, const char *query_string,
-                      const unsigned int query_string_length);
+RTREE_VALUE __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree,
+                                                 const char *query_string,
+                                                 const unsigned int query_string_length);
 
 #endif // RTREE_NO_INTERFACE
 
 #ifndef RTREE_NO_IMPLEMENTATION
 
-#ifndef CTOOLS_RTREE_SKIP_T
-// The http standard recommends that servers support URIs with lengths of 8000 octets in protocol
-// elements. Since a URI can consist mostly of a request path, this field must have space for at
-// least 13 bits.
-#define CTOOLS_RTREE_SKIP_T uint16_t
-#endif
-
-#ifndef CTOOLS_RTREE_INDEX_T
-// Large API servers can have upwards of 300 endpoints, which results in 600 nodes in the worst case
-// (binary tree structure). To index that amount of nodes, we need at least 10 bits. Using the full
-// 16 bits allows this router to support 32768 endpoints in the worst case.
-#define CTOOLS_RTREE_INDEX_T uint16_t
-#endif
-
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "min.h"
 
-struct rtree_node {
+struct __EXPAND_CONCAT(RTREE_NAME, _node) {
     // The next character in the string of the path
     // that this node represents.
     char character;
 
     // The node count of the tree that this node sits on top of. The count excludes
     // this node, meaning that a value of 0 identifies a leaf node.
-    uint16_t tree_size;
+    CTOOLS_RTREE_INDEX tree_size;
 
     // Defines how many characters in the query string that the subnodes (of this node) skips.
-    uint16_t key_length;
+    CTOOLS_RTREE_SKIP key_length;
 
     // The value returned to the caller when searching through the rtree.
-    uint16_t value;
-
-    uint8_t _padding[1];
+    RTREE_VALUE value;
 };
 
-int _rtree_sort_entries_by_key_cmp(const void *a, const void *b) {
-    struct rtree_setup_entry *first = (struct rtree_setup_entry *)a;
-    struct rtree_setup_entry *second = (struct rtree_setup_entry *)b;
+int __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _sort_entries_by_key_cmp)(const void *a,
+                                                                              const void *b) {
+    struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) *first =
+        (struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) *)a;
+    struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) *second =
+        (struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) *)b;
 
     return strcmp(first->str, (const char *)second->str);
 }
 
-unsigned int _rtree_build_internal(const struct rtree_setup_entry *entries,
-                                   const uint16_t entry_count, struct rtree_node **nodes,
-                                   uint16_t *nodes_size, uint16_t *nodes_capactity,
-                                   const uint16_t key_idx) {
+unsigned int __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _build_internal)(
+    const struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) * entries,
+    const CTOOLS_RTREE_INDEX entry_count, struct __EXPAND_CONCAT(RTREE_NAME, _node) * *nodes,
+    CTOOLS_RTREE_INDEX *nodes_size, CTOOLS_RTREE_INDEX *nodes_capactity,
+    const CTOOLS_RTREE_INDEX key_idx) {
+
     // 1. Seek to first column with different characters
     // 2. Create a new node
     // 3. Recursively call this function for each diverging group
 
-    uint16_t current_key_char_idx = key_idx;
+    CTOOLS_RTREE_INDEX current_key_char_idx = key_idx;
 
     bool duplicate_keys = false;
 
@@ -88,7 +106,7 @@ unsigned int _rtree_build_internal(const struct rtree_setup_entry *entries,
         char current_char = entries[0].str[current_key_char_idx];
         bool null_encountered = false;
 
-        for (uint16_t entry_idx = 0; entry_idx < entry_count; entry_idx++) {
+        for (CTOOLS_RTREE_INDEX entry_idx = 0; entry_idx < entry_count; entry_idx++) {
             bool unequal_character = entries[entry_idx].str[current_key_char_idx] != current_char;
             bool is_null = entries[entry_idx].str[current_key_char_idx] == '\0';
             if (unequal_character || is_null)
@@ -110,24 +128,24 @@ unsigned int _rtree_build_internal(const struct rtree_setup_entry *entries,
 
     // Increase capacity if we are about to blow past it
     if (*nodes_size == *nodes_capactity) {
-        struct rtree_node *new_nodes =
-            (struct rtree_node *)realloc(*nodes, *nodes_capactity * 2 * sizeof(struct rtree_node));
+        struct __EXPAND_CONCAT(RTREE_NAME, _node) *new_nodes =
+            (struct __EXPAND_CONCAT(RTREE_NAME, _node) *)realloc(
+                *nodes, *nodes_capactity * 2 * sizeof(struct __EXPAND_CONCAT(RTREE_NAME, _node)));
         if (!new_nodes)
             return 0;
         *nodes_capactity *= 2;
         *nodes = new_nodes;
     }
 
-    const uint16_t key_length = current_key_char_idx - key_idx;
+    const CTOOLS_RTREE_SKIP key_length = current_key_char_idx - key_idx;
 
     // Create a new node
-    uint32_t active_node_idx = (*nodes_size)++;
-    (*nodes)[active_node_idx] = (struct rtree_node){
+    const CTOOLS_RTREE_INDEX active_node_idx = (*nodes_size)++;
+    (*nodes)[active_node_idx] = (struct __EXPAND_CONCAT(RTREE_NAME, _node)){
         .character = entries->str[key_idx],
         .tree_size = 1, // Assume this is a leaf node
         .key_length = key_length,
         .value = entries->value,
-        ._padding = 0,
     };
 
     // End if this is a leaf node
@@ -136,19 +154,20 @@ unsigned int _rtree_build_internal(const struct rtree_setup_entry *entries,
     // Else: this is a parent node
 
     // Scan the character at the same index in every key
-    for (uint16_t range_begin = 0; range_begin < entry_count;) {
+    for (CTOOLS_RTREE_INDEX range_begin = 0; range_begin < entry_count;) {
         const char current_char = entries[range_begin].str[current_key_char_idx];
 
         // Seek to next divergence
-        uint16_t range_end = range_begin + 1;
+        CTOOLS_RTREE_INDEX range_end = range_begin + 1;
         while (range_end < entry_count &&
                current_char == entries[range_end].str[current_key_char_idx])
             range_end++;
 
         // Recursively call this procedure with the set of equal characters in the index
         const unsigned int num_new_nodes =
-            _rtree_build_internal(&entries[range_begin], range_end - range_begin, nodes, nodes_size,
-                                  nodes_capactity, current_key_char_idx);
+            __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME),
+                            _build_internal)(&entries[range_begin], range_end - range_begin, nodes,
+                                             nodes_size, nodes_capactity, current_key_char_idx);
 
         // If the operation failed, exit
         if (!num_new_nodes)
@@ -162,8 +181,10 @@ unsigned int _rtree_build_internal(const struct rtree_setup_entry *entries,
     return (*nodes)[active_node_idx].tree_size;
 }
 
-int rtree_create(struct rtree *rtree, const struct rtree_setup_entry *entries,
-                 const uint16_t entry_count) {
+int __EXPAND_CONCAT(RTREE_NAME,
+                    _create)(struct RTREE_NAME *rtree,
+                             const struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) * entries,
+                             const CTOOLS_RTREE_INDEX entry_count) {
 
     if (entry_count == 0 || entries == NULL) {
         errno = EINVAL;
@@ -172,28 +193,31 @@ int rtree_create(struct rtree *rtree, const struct rtree_setup_entry *entries,
 
     static const unsigned int INITIAL_NODE_CAPACITY = 8;
 
-    struct rtree_setup_entry *sorted_entries =
-        (struct rtree_setup_entry *)malloc(entry_count * sizeof(struct rtree_setup_entry));
+    struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) *sorted_entries =
+        (struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) *)malloc(
+            entry_count * sizeof(struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry)));
 
     if (!sorted_entries)
         return -1;
 
-    struct rtree_node *nodes =
-        (struct rtree_node *)malloc(INITIAL_NODE_CAPACITY * sizeof(struct rtree_node));
+    struct __EXPAND_CONCAT(RTREE_NAME, _node) *nodes =
+        (struct __EXPAND_CONCAT(RTREE_NAME, _node) *)malloc(
+            INITIAL_NODE_CAPACITY * sizeof(struct __EXPAND_CONCAT(RTREE_NAME, _node)));
 
     if (!nodes) {
         free(sorted_entries);
         return -1;
     }
 
-    memcpy(sorted_entries, entries, entry_count * sizeof(struct rtree_setup_entry));
-    qsort(sorted_entries, entry_count, sizeof(struct rtree_setup_entry),
-          _rtree_sort_entries_by_key_cmp);
+    memcpy(sorted_entries, entries,
+           entry_count * sizeof(struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry)));
+    qsort(sorted_entries, entry_count, sizeof(struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry)),
+          __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _sort_entries_by_key_cmp));
 
-    uint16_t node_count = 0;
-    uint16_t node_capacity = INITIAL_NODE_CAPACITY;
-    unsigned int num_nodes =
-        _rtree_build_internal(sorted_entries, entry_count, &nodes, &node_count, &node_capacity, 0);
+    CTOOLS_RTREE_INDEX node_count = 0;
+    CTOOLS_RTREE_INDEX node_capacity = INITIAL_NODE_CAPACITY;
+    unsigned int num_nodes = __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _build_internal)(
+        sorted_entries, entry_count, &nodes, &node_count, &node_capacity, 0);
 
     free(sorted_entries);
 
@@ -202,22 +226,23 @@ int rtree_create(struct rtree *rtree, const struct rtree_setup_entry *entries,
         return -1;
     }
 
-    *rtree = (struct rtree){
+    *rtree = (struct RTREE_NAME){
         .nodes = nodes,
     };
 
     return 0;
 }
 
-void rtree_destroy(struct rtree *rtree) { free(rtree->nodes); }
+void __EXPAND_CONCAT(RTREE_NAME, _destroy)(struct RTREE_NAME *rtree) { free(rtree->nodes); }
 
-uint16_t rtree_search(const struct rtree *rtree, const char *query_string,
-                      const unsigned int query_string_length) {
+RTREE_VALUE __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree,
+                                                 const char *query_string,
+                                                 const unsigned int query_string_length) {
     // An iterator to seek through the query_string
     unsigned int query_string_it = 0;
 
     // We start searching from the top node
-    uint16_t current_node = 0;
+    CTOOLS_RTREE_INDEX current_node = 0;
 
     // Loop until we hit a leaf node.
     while (rtree->nodes[current_node].tree_size) {
@@ -240,10 +265,10 @@ uint16_t rtree_search(const struct rtree *rtree, const char *query_string,
             return -1;
 
         // If a matching subnode is found, it will be stored here.
-        uint16_t matching_node = 0;
+        CTOOLS_RTREE_INDEX matching_node = 0;
 
         // Search for a subnode that matches with the query string
-        for (uint16_t subnode = current_node + 1;
+        for (CTOOLS_RTREE_INDEX subnode = current_node + 1;
              !matching_node & (subnode < rtree->nodes->tree_size);
              subnode += rtree->nodes[subnode].tree_size)
             if (rtree->nodes[subnode].character == query_string[query_string_it])
