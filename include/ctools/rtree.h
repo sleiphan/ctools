@@ -165,6 +165,11 @@ unsigned int _rtree_build_internal(const struct rtree_setup_entry *entries,
 int rtree_create(struct rtree *rtree, const struct rtree_setup_entry *entries,
                  const uint16_t entry_count) {
 
+    if (entry_count == 0 || entries == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
     static const unsigned int INITIAL_NODE_CAPACITY = 8;
 
     struct rtree_setup_entry *sorted_entries =

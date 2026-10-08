@@ -57,13 +57,33 @@ TEST(rtree, error_on_duplicate_keys) {
         (struct rtree_setup_entry){.str = "helloworld", .value = 43},
     };
 
-    // Assign different values to the value of each entry
-    for (int i = 0; i < sizeof(entries) / sizeof(struct rtree_setup_entry); i++)
-        entries[i].value = i + 1;
-
     struct rtree radix_tree;
     const int rv =
         rtree_create(&radix_tree, entries, sizeof(entries) / sizeof(struct rtree_setup_entry));
+    EXPECT_NE(rv, 0);
+
+    if (rv == 0)
+        rtree_destroy(&radix_tree);
+}
+
+TEST(rtree, error_on_empty_entry_list) {
+    struct rtree_setup_entry entries[] = {
+        (struct rtree_setup_entry){.str = "sole_entry", .value = 42},
+    };
+
+    struct rtree radix_tree;
+    const int rv = rtree_create(&radix_tree, entries, 0);
+    EXPECT_EQ(errno, EINVAL);
+    EXPECT_NE(rv, 0);
+
+    if (rv == 0)
+        rtree_destroy(&radix_tree);
+}
+
+TEST(rtree, error_on_NULL_entry_list) {
+    struct rtree radix_tree;
+    const int rv = rtree_create(&radix_tree, NULL, 42);
+    EXPECT_EQ(errno, EINVAL);
     EXPECT_NE(rv, 0);
 
     if (rv == 0)
