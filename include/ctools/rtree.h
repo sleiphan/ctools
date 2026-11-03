@@ -128,12 +128,28 @@ unsigned int __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _build_internal)(
 
     // Increase capacity if we are about to blow past it
     if (*nodes_size == *nodes_capactity) {
+        static const int is_signed = !(((CTOOLS_RTREE_INDEX)-1) > 0);
+        static const CTOOLS_RTREE_INDEX max_capacity =
+            (((CTOOLS_RTREE_INDEX)1 << (sizeof(CTOOLS_RTREE_INDEX) * 8 - 1 - is_signed)) - 1) |
+            ((CTOOLS_RTREE_INDEX)1 << (sizeof(CTOOLS_RTREE_INDEX) * 8 - 1 - is_signed));
+
+        const CTOOLS_RTREE_INDEX new_capacity =
+            *nodes_capactity > (max_capacity / 2) ? max_capacity : *nodes_capactity * 2;
+
+        // If the capacity did not increase, error out
+        if (new_capacity <= *nodes_capactity) {
+            errno = EOVERFLOW;
+            return 0;
+        }
+
         struct __EXPAND_CONCAT(RTREE_NAME, _node) *new_nodes =
             (struct __EXPAND_CONCAT(RTREE_NAME, _node) *)realloc(
-                *nodes, *nodes_capactity * 2 * sizeof(struct __EXPAND_CONCAT(RTREE_NAME, _node)));
+                *nodes, new_capacity * sizeof(struct __EXPAND_CONCAT(RTREE_NAME, _node)));
+
         if (!new_nodes)
             return 0;
-        *nodes_capactity *= 2;
+
+        *nodes_capactity = new_capacity;
         *nodes = new_nodes;
     }
 
