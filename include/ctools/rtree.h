@@ -47,9 +47,9 @@ int __EXPAND_CONCAT(RTREE_NAME,
 
 void __EXPAND_CONCAT(RTREE_NAME, _destroy)(struct RTREE_NAME *rtree);
 
-RTREE_VALUE __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree,
-                                                 const char *query_string,
-                                                 const unsigned int query_string_length);
+int __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree, const char *query_string,
+                                         const unsigned int query_string_length,
+                                         RTREE_VALUE *value_out);
 
 #endif // RTREE_NO_INTERFACE
 
@@ -244,9 +244,15 @@ int __EXPAND_CONCAT(RTREE_NAME,
 
 void __EXPAND_CONCAT(RTREE_NAME, _destroy)(struct RTREE_NAME *rtree) { free(rtree->nodes); }
 
-RTREE_VALUE __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree,
-                                                 const char *query_string,
-                                                 const unsigned int query_string_length) {
+int __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree, const char *query_string,
+                                         const unsigned int query_string_length,
+                                         RTREE_VALUE *value_out) {
+    // Validate arguments
+    if (rtree == NULL || query_string == NULL || value_out == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
     // An iterator to seek through the query_string
     unsigned int query_string_it = 0;
 
@@ -271,7 +277,7 @@ RTREE_VALUE __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree,
         // If the subnodes wants to match with a character that is beyond the length of
         // the query_string, the query string does not match anything in this trie.
         if (query_string_it >= query_string_length)
-            return -1;
+            return 0;
 
         // If a matching subnode is found, it will be stored here.
         CTOOLS_RTREE_INDEX matching_node = 0;
@@ -285,13 +291,14 @@ RTREE_VALUE __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree,
 
         // If none of the subnodes match, the query string does not exist in this trie.
         if (!matching_node)
-            return -1;
+            return 0;
 
         // Continue processing from the subnode.
         current_node = matching_node;
     }
 
-    return rtree->nodes[current_node].value;
+    *value_out = rtree->nodes[current_node].value;
+    return 1;
 }
 
 #endif // RTREE_NO_IMPLEMENTATION

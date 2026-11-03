@@ -44,14 +44,15 @@ TEST(rtree, basic_usage) {
 
     // Check the value associated with each entry
     for (int i = 0; i < sizeof(entries) / sizeof(struct rtree_setup_entry); i++) {
-        uint16_t value = rtree_search(&radix_tree, entries[i].str, strlen(entries[i].str));
+        uint16_t value = 0;
+        rtree_search(&radix_tree, entries[i].str, strlen(entries[i].str), &value);
         EXPECT_EQ(value, entries[i].value);
     }
 
     rtree_destroy(&radix_tree);
 }
 
-TEST(rtree, error_on_duplicate_keys) {
+TEST(rtree_create, error_on_duplicate_keys) {
     struct rtree_setup_entry entries[] = {
         (struct rtree_setup_entry){.str = "helloworld", .value = 42},
         (struct rtree_setup_entry){.str = "helloworld", .value = 43},
@@ -66,7 +67,7 @@ TEST(rtree, error_on_duplicate_keys) {
         rtree_destroy(&radix_tree);
 }
 
-TEST(rtree, error_on_empty_entry_list) {
+TEST(rtree_create, error_on_empty_entry_list) {
     struct rtree_setup_entry entries[] = {
         (struct rtree_setup_entry){.str = "sole_entry", .value = 42},
     };
@@ -80,7 +81,7 @@ TEST(rtree, error_on_empty_entry_list) {
         rtree_destroy(&radix_tree);
 }
 
-TEST(rtree, error_on_NULL_entry_list) {
+TEST(rtree_create, error_on_NULL_entry_list) {
     struct rtree radix_tree;
     const int rv = rtree_create(&radix_tree, NULL, 42);
     EXPECT_EQ(errno, EINVAL);
