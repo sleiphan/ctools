@@ -81,6 +81,16 @@ TEST(rtree_create, error_on_empty_entry_list) {
         rtree_destroy(&radix_tree);
 }
 
+TEST(rtree_create, error_on_NULL_rtree) {
+    struct rtree_setup_entry entries[] = {
+        (struct rtree_setup_entry){.str = "sole_entry", .value = 42},
+    };
+
+    const int rv = rtree_create(NULL, entries, 0);
+    EXPECT_EQ(errno, EINVAL);
+    EXPECT_NE(rv, 0);
+}
+
 TEST(rtree_create, error_on_NULL_entry_list) {
     struct rtree radix_tree;
     const int rv = rtree_create(&radix_tree, NULL, 42);
@@ -89,4 +99,54 @@ TEST(rtree_create, error_on_NULL_entry_list) {
 
     if (rv == 0)
         rtree_destroy(&radix_tree);
+}
+
+TEST(rtree_search, error_on_NULL_rtree_object) {
+    const char *key_query = "anything";
+    uint16_t value = 0;
+
+    const int rv = rtree_search(NULL, key_query, strlen(key_query), &value);
+
+    EXPECT_EQ(errno, EINVAL);
+    EXPECT_LT(rv, 0);
+}
+
+TEST(rtree_search, error_on_NULL_query_string) {
+    struct rtree_setup_entry entries[sizeof(entries_g) / sizeof(struct rtree_setup_entry)];
+    memcpy(entries, entries_g, sizeof(entries_g));
+
+    // Assign different values to each entry
+    for (int i = 0; i < sizeof(entries) / sizeof(struct rtree_setup_entry); i++)
+        entries[i].value = i + 1;
+
+    struct rtree radix_tree;
+    if (rtree_create(&radix_tree, entries, sizeof(entries) / sizeof(struct rtree_setup_entry)))
+        FAIL();
+
+    uint16_t value = 0;
+    const int rv = rtree_search(&radix_tree, NULL, strlen(entries[0].str), &value);
+    EXPECT_EQ(errno, EINVAL);
+    EXPECT_LT(rv, 0);
+
+    rtree_destroy(&radix_tree);
+}
+
+TEST(rtree_search, error_on_NULL_value_out_pointer) {
+    struct rtree_setup_entry entries[sizeof(entries_g) / sizeof(struct rtree_setup_entry)];
+    memcpy(entries, entries_g, sizeof(entries_g));
+
+    // Assign different values to each entry
+    for (int i = 0; i < sizeof(entries) / sizeof(struct rtree_setup_entry); i++)
+        entries[i].value = i + 1;
+
+    struct rtree radix_tree;
+    if (rtree_create(&radix_tree, entries, sizeof(entries) / sizeof(struct rtree_setup_entry)))
+        FAIL();
+
+    uint16_t value = 0;
+    const int rv = rtree_search(&radix_tree, entries[0].str, strlen(entries[0].str), NULL);
+    EXPECT_EQ(errno, EINVAL);
+    EXPECT_LT(rv, 0);
+
+    rtree_destroy(&radix_tree);
 }
