@@ -65,8 +65,8 @@ struct __EXPAND_CONCAT(RTREE_NAME, _node) {
     // that this node represents.
     char character;
 
-    // The node count of the tree that this node sits on top of. The count excludes
-    // this node, meaning that a value of 0 identifies a leaf node.
+    // The node count of the tree that this node is the parent of. The count includes the parent,
+    // meaning that a value of 1 identifies a leaf node.
     CTOOLS_RTREE_INDEX tree_size;
 
     // Defines how many characters in the query string that the subnodes (of this node) skips.
