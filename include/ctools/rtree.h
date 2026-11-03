@@ -7,12 +7,12 @@
 #define RTREE_VALUE uint16_t
 #endif
 
-#ifndef CTOOLS_RTREE_SKIP
+#ifndef CTOOLS_RTREE_KEY
 #include <stdint.h>
 // The http standard recommends that servers support URIs with lengths of 8000 octets in protocol
 // elements. Since a URI can consist mostly of a request path, this field must have space for at
 // least 13 bits.
-#define CTOOLS_RTREE_SKIP uint16_t
+#define CTOOLS_RTREE_KEY uint16_t
 #endif
 
 #ifndef CTOOLS_RTREE_INDEX
@@ -70,7 +70,7 @@ struct __EXPAND_CONCAT(RTREE_NAME, _node) {
     CTOOLS_RTREE_INDEX tree_size;
 
     // Defines how many characters in the query string that the subnodes (of this node) skips.
-    CTOOLS_RTREE_SKIP key_length;
+    CTOOLS_RTREE_KEY key_length;
 
     // The value returned to the caller when searching through the rtree.
     RTREE_VALUE value;
@@ -90,13 +90,13 @@ unsigned int __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _build_internal)(
     const struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) * entries,
     const CTOOLS_RTREE_INDEX entry_count, struct __EXPAND_CONCAT(RTREE_NAME, _node) * *nodes,
     CTOOLS_RTREE_INDEX *nodes_size, CTOOLS_RTREE_INDEX *nodes_capactity,
-    const CTOOLS_RTREE_INDEX key_idx) {
+    const CTOOLS_RTREE_KEY key_idx) {
 
     // 1. Seek to first column with different characters
     // 2. Create a new node
     // 3. Recursively call this function for each diverging group
 
-    CTOOLS_RTREE_INDEX current_key_char_idx = key_idx;
+    CTOOLS_RTREE_KEY current_key_char_idx = key_idx;
 
     bool duplicate_keys = false;
 
@@ -137,7 +137,7 @@ unsigned int __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _build_internal)(
         *nodes = new_nodes;
     }
 
-    const CTOOLS_RTREE_SKIP key_length = current_key_char_idx - key_idx;
+    const CTOOLS_RTREE_KEY key_length = current_key_char_idx - key_idx;
 
     // Create a new node
     const CTOOLS_RTREE_INDEX active_node_idx = (*nodes_size)++;
@@ -154,11 +154,11 @@ unsigned int __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _build_internal)(
     // Else: this is a parent node
 
     // Scan the character at the same index in every key
-    for (CTOOLS_RTREE_INDEX range_begin = 0; range_begin < entry_count;) {
+    for (CTOOLS_RTREE_KEY range_begin = 0; range_begin < entry_count;) {
         const char current_char = entries[range_begin].str[current_key_char_idx];
 
         // Seek to next divergence
-        CTOOLS_RTREE_INDEX range_end = range_begin + 1;
+        CTOOLS_RTREE_KEY range_end = range_begin + 1;
         while (range_end < entry_count &&
                current_char == entries[range_end].str[current_key_char_idx])
             range_end++;
@@ -254,7 +254,7 @@ int __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree, const c
     }
 
     // An iterator to seek through the query_string
-    unsigned int query_string_it = 0;
+    CTOOLS_RTREE_KEY query_string_it = 0;
 
     // We start searching from the top node
     CTOOLS_RTREE_INDEX current_node = 0;
