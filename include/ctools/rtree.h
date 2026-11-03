@@ -186,9 +186,18 @@ int __EXPAND_CONCAT(RTREE_NAME,
                              const struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) * entries,
                              const CTOOLS_RTREE_INDEX entry_count) {
 
-    if (entry_count == 0 || entries == NULL) {
+    // Validate arguments
+    if (rtree == NULL || entry_count <= 0 || entries == NULL) {
         errno = EINVAL;
         return -1;
+    }
+
+    // Validate the key of each entry
+    for (CTOOLS_RTREE_INDEX i = 0; i < entry_count; i++) {
+        if (entries[i].str == NULL) {
+            errno = EINVAL;
+            return -1;
+        }
     }
 
     static const unsigned int INITIAL_NODE_CAPACITY = 8;
