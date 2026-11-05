@@ -23,6 +23,9 @@
 #define CTOOLS_RTREE_INDEX uint16_t
 #endif
 
+static_assert(((CTOOLS_RTREE_KEY)-1) > 0, "CTOOLS_RTREE_KEY must be an unsigned integer type");
+static_assert(((CTOOLS_RTREE_INDEX)-1) > 0, "CTOOLS_RTREE_INDEX must be an unsigned integer type");
+
 #include "define_concat.h"
 
 #ifndef RTREE_NO_INTERFACE
@@ -58,8 +61,6 @@ int __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree, const c
 #include <stdlib.h>
 #include <string.h>
 
-#include "min.h"
-
 struct __EXPAND_CONCAT(RTREE_NAME, _node) {
     // The next character in the string of the path
     // that this node represents.
@@ -75,6 +76,12 @@ struct __EXPAND_CONCAT(RTREE_NAME, _node) {
     // The value returned to the caller when searching through the rtree.
     RTREE_VALUE value;
 };
+
+static const CTOOLS_RTREE_INDEX __EXPAND_CONCAT(RTREE_NAME,
+                                                _node_count_max) = ((CTOOLS_RTREE_INDEX)-1);
+
+static const CTOOLS_RTREE_INDEX __EXPAND_CONCAT(RTREE_NAME, _entry_count_max) =
+    __EXPAND_CONCAT(RTREE_NAME, _node_count_max) / 2 + 1;
 
 int __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _sort_entries_by_key_cmp)(const void *a,
                                                                               const void *b) {
@@ -128,13 +135,10 @@ unsigned int __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _build_internal)(
 
     // Increase capacity if we are about to blow past it
     if (*nodes_size == *nodes_capactity) {
-        static const int is_signed = !(((CTOOLS_RTREE_INDEX)-1) > 0);
-        static const CTOOLS_RTREE_INDEX max_capacity =
-            (((CTOOLS_RTREE_INDEX)1 << (sizeof(CTOOLS_RTREE_INDEX) * 8 - 1 - is_signed)) - 1) |
-            ((CTOOLS_RTREE_INDEX)1 << (sizeof(CTOOLS_RTREE_INDEX) * 8 - 1 - is_signed));
-
         const CTOOLS_RTREE_INDEX new_capacity =
-            *nodes_capactity > (max_capacity / 2) ? max_capacity : *nodes_capactity * 2;
+            *nodes_capactity >= __EXPAND_CONCAT(RTREE_NAME, _entry_count_max)
+                ? __EXPAND_CONCAT(RTREE_NAME, _node_count_max)
+                : *nodes_capactity * 2;
 
         // If the capacity did not increase, error out
         if (new_capacity <= *nodes_capactity) {
@@ -203,8 +207,14 @@ int __EXPAND_CONCAT(RTREE_NAME,
                              const CTOOLS_RTREE_INDEX entry_count) {
 
     // Validate arguments
-    if (rtree == NULL || entry_count <= 0 || entries == NULL) {
+    if (rtree == NULL || entry_count == 0 || entries == NULL) {
         errno = EINVAL;
+        return -1;
+    }
+
+    // Disallow an entry_count that causes the node count to possibly overflow its data type.
+    if (entry_count > __EXPAND_CONCAT(RTREE_NAME, _entry_count_max)) {
+        errno = EOVERFLOW;
         return -1;
     }
 

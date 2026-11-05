@@ -4,6 +4,14 @@ extern "C" {
 #include "ctools/rtree.h"
 }
 
+#undef RTREE_NAME
+#undef CTOOLS_RTREE_INDEX
+#define RTREE_NAME rtree8
+#define CTOOLS_RTREE_INDEX uint8_t
+extern "C" {
+#include "ctools/rtree.h"
+}
+
 const struct rtree_setup_entry entries_g[] = {
     (struct rtree_setup_entry){.str = "Hello World!", .value = 0},
     (struct rtree_setup_entry){.str = "Health", .value = 0},
@@ -149,4 +157,46 @@ TEST(rtree_search, error_on_NULL_value_out_pointer) {
     EXPECT_LT(rv, 0);
 
     rtree_destroy(&radix_tree);
+}
+
+TEST(rtree_create, error_on_NULL_value_out_pointer) {
+    const uint16_t entries_count = 260;
+    const int key_length = 8;
+
+    struct rtree8_setup_entry entries[entries_count];
+    char keys[entries_count][key_length];
+
+    memset(keys, 0, sizeof(keys));
+    for (uint16_t i = 0; i < entries_count; i++) {
+        EXPECT_GT(snprintf(keys[i], key_length, "%d", i + 100), 0);
+        entries[i] = (struct rtree8_setup_entry){
+            .str = keys[i],
+            .value = i,
+        };
+    }
+
+    struct rtree8 radix_tree;
+    int rv = -1;
+    int err = -1;
+
+    rv = rtree8_create(&radix_tree, entries, 127);
+    err = errno;
+    EXPECT_EQ(rv, 0);
+    EXPECT_EQ(err, 0);
+    if (rv == 0)
+        rtree8_destroy(&radix_tree);
+
+    rv = rtree8_create(&radix_tree, entries, 128);
+    err = errno;
+    EXPECT_EQ(rv, 0);
+    EXPECT_EQ(err, 0);
+    if (rv == 0)
+        rtree8_destroy(&radix_tree);
+
+    rv = rtree8_create(&radix_tree, entries, 129);
+    err = errno;
+    EXPECT_EQ(rv, -1);
+    EXPECT_NE(err, 0);
+    if (rv == 0)
+        rtree8_destroy(&radix_tree);
 }
