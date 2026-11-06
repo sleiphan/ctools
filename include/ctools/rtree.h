@@ -30,18 +30,9 @@ static_assert(((CTOOLS_RTREE_INDEX)-1) > 0, "CTOOLS_RTREE_INDEX must be an unsig
 
 #ifndef RTREE_NO_INTERFACE
 
-struct __EXPAND_CONCAT(RTREE_NAME, _node);
-
-struct RTREE_NAME {
-    struct __EXPAND_CONCAT(RTREE_NAME, _node) * nodes;
-};
-
-struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) {
-    const char *str;
-    RTREE_VALUE value;
-};
-
 struct RTREE_NAME;
+
+struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry);
 
 int __EXPAND_CONCAT(RTREE_NAME,
                     _create)(struct RTREE_NAME *rtree,
@@ -74,6 +65,15 @@ struct __EXPAND_CONCAT(RTREE_NAME, _node) {
     CTOOLS_RTREE_KEY key_length;
 
     // The value returned to the caller when searching through the rtree.
+    RTREE_VALUE value;
+};
+
+struct RTREE_NAME {
+    struct __EXPAND_CONCAT(RTREE_NAME, _node) * nodes;
+};
+
+struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) {
+    const char *str;
     RTREE_VALUE value;
 };
 
