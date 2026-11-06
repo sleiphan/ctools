@@ -286,7 +286,7 @@ int __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree, const c
     CTOOLS_RTREE_INDEX current_node = 0;
 
     // Loop until we hit a leaf node.
-    while (rtree->nodes[current_node].tree_size) {
+    while (rtree->nodes[current_node].tree_size > 1) {
 
         // Seek to to the character that this node's subnodes compares with.
         query_string_it += rtree->nodes[current_node].key_length;
