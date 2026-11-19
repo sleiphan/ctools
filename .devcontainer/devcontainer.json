@@ -1,6 +1,5 @@
 {
 	// --security-opt seccomp=unconfined
-	"name": "Alpine cpp dev",
 	"postCreateCommand": "chmod +x ./.devcontainer/post-install.sh && ./.devcontainer/post-install.sh",
     "shutdownAction": "stopContainer",
 	"build": {
