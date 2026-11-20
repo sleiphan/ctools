@@ -23,6 +23,7 @@
 #define CTOOLS_RTREE_INDEX uint16_t
 #endif
 
+#include <assert.h>
 static_assert(((CTOOLS_RTREE_KEY)-1) > 0, "CTOOLS_RTREE_KEY must be an unsigned integer type");
 static_assert(((CTOOLS_RTREE_INDEX)-1) > 0, "CTOOLS_RTREE_INDEX must be an unsigned integer type");
 
@@ -49,6 +50,8 @@ int __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree, const c
 
 #ifndef RTREE_NO_IMPLEMENTATION
 
+#include <errno.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -83,6 +86,8 @@ static const CTOOLS_RTREE_INDEX __EXPAND_CONCAT(RTREE_NAME,
 static const CTOOLS_RTREE_INDEX __EXPAND_CONCAT(RTREE_NAME, _entry_count_max) =
     __EXPAND_CONCAT(RTREE_NAME, _node_count_max) / 2 + 1;
 
+static const CTOOLS_RTREE_KEY __EXPAND_CONCAT(RTREE_NAME, _key_length_max) = ((CTOOLS_RTREE_KEY)-1);
+
 int __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _sort_entries_by_key_cmp)(const void *a,
                                                                               const void *b) {
     struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) *first =
@@ -90,7 +95,8 @@ int __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _sort_entries_by_key_cmp)(co
     struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) *second =
         (struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) *)b;
 
-    return strcmp(first->str, (const char *)second->str);
+    return strncmp(first->str, (const char *)second->str,
+                   __EXPAND_CONCAT(RTREE_NAME, _key_length_max));
 }
 
 CTOOLS_RTREE_INDEX __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _build_internal)(
@@ -174,11 +180,11 @@ CTOOLS_RTREE_INDEX __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _build_intern
     // Else: this is a parent node
 
     // Scan the character at the same index in every key
-    for (CTOOLS_RTREE_KEY range_begin = 0; range_begin < entry_count;) {
+    for (CTOOLS_RTREE_INDEX range_begin = 0; range_begin < entry_count;) {
         const char current_char = entries[range_begin].str[current_key_char_idx];
 
         // Seek to next divergence
-        CTOOLS_RTREE_KEY range_end = range_begin + 1;
+        CTOOLS_RTREE_INDEX range_end = range_begin + 1;
         while (range_end < entry_count &&
                current_char == entries[range_end].str[current_key_char_idx])
             range_end++;
@@ -223,6 +229,20 @@ int __EXPAND_CONCAT(RTREE_NAME,
         if (entries[i].str == NULL) {
             errno = EINVAL;
             return -1;
+        }
+
+        const CTOOLS_RTREE_KEY key_len =
+            strnlen(entries[i].str, __EXPAND_CONCAT(RTREE_NAME, _key_length_max));
+
+        switch (key_len) {
+        case 0:
+            errno = EINVAL;
+            return -1;
+        case __EXPAND_CONCAT(RTREE_NAME, _key_length_max):
+            if (entries[i].str[__EXPAND_CONCAT(RTREE_NAME, _key_length_max)] != '\0') {
+                errno = EOVERFLOW;
+                return -1;
+            }
         }
     }
 
