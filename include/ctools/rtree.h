@@ -234,15 +234,17 @@ int __EXPAND_CONCAT(RTREE_NAME,
         const CTOOLS_RTREE_KEY key_len =
             strnlen(entries[i].str, __EXPAND_CONCAT(RTREE_NAME, _key_length_max));
 
-        switch (key_len) {
-        case 0:
+        // Disallow zero-length keys
+        if (key_len == 0) {
             errno = EINVAL;
             return -1;
-        case __EXPAND_CONCAT(RTREE_NAME, _key_length_max):
-            if (entries[i].str[__EXPAND_CONCAT(RTREE_NAME, _key_length_max)] != '\0') {
-                errno = EOVERFLOW;
-                return -1;
-            }
+        }
+
+        // Deal with the edge case where the key length is as long as the maximum length
+        if (key_len == __EXPAND_CONCAT(RTREE_NAME, _key_length_max) &&
+            entries[i].str[__EXPAND_CONCAT(RTREE_NAME, _key_length_max)] != '\0') {
+            errno = EOVERFLOW;
+            return -1;
         }
     }
 
