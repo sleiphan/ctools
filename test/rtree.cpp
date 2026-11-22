@@ -159,7 +159,7 @@ TEST(rtree_search, error_on_NULL_value_out_pointer) {
     rtree_destroy(&radix_tree);
 }
 
-TEST(rtree_create, error_on_NULL_value_out_pointer) {
+TEST(rtree_create, enforces_entry_count_limit_to_prevent_node_count_overflow) {
     const uint16_t entries_count = 260;
     const int key_length = 8;
 
