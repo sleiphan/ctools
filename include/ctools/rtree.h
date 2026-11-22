@@ -330,10 +330,12 @@ int __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree, const c
         // If a matching subnode is found, it will be stored here.
         CTOOLS_RTREE_INDEX matching_node = 0;
 
+        // Define the ending bound of the current node's subtree.
+        const CTOOLS_RTREE_INDEX subtree_end = current_node + rtree->nodes[current_node].tree_size;
+
         // Search for a subnode that matches with the query string
         for (CTOOLS_RTREE_INDEX subnode = current_node + 1;
-             !matching_node & (subnode < rtree->nodes->tree_size);
-             subnode += rtree->nodes[subnode].tree_size)
+             !matching_node & (subnode < subtree_end); subnode += rtree->nodes[subnode].tree_size)
             if (rtree->nodes[subnode].character == query_string[query_string_it])
                 matching_node = subnode;
 

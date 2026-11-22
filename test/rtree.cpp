@@ -200,3 +200,30 @@ TEST(rtree_create, error_on_NULL_value_out_pointer) {
     if (rv == 0)
         rtree8_destroy(&radix_tree);
 }
+
+/**
+ * Guards against scanning past the current subtree into an unrelated branch.
+ * Using the whole-tree bound let "ac" escape the "a" subtree and return "ca"'s
+ * value instead of reporting no match.
+ */
+TEST(rtree_search, does_not_match_outside_current_subtree) {
+    struct rtree_setup_entry entries[] = {(struct rtree_setup_entry){.str = "aa", .value = 1},
+                                          (struct rtree_setup_entry){.str = "ab", .value = 2},
+                                          (struct rtree_setup_entry){.str = "ca", .value = 3},
+                                          (struct rtree_setup_entry){.str = "cb", .value = 4}};
+
+    // Assign different values to each entry
+    for (int i = 0; i < sizeof(entries) / sizeof(struct rtree_setup_entry); i++)
+        entries[i].value = i + 1;
+
+    struct rtree radix_tree;
+    if (rtree_create(&radix_tree, entries, sizeof(entries) / sizeof(struct rtree_setup_entry)))
+        FAIL();
+
+    RTREE_VALUE value = 0;
+    const int rv = rtree_search(&radix_tree, "ac", 2, &value);
+    EXPECT_EQ(rv, 0);
+    EXPECT_EQ(value, 0);
+
+    rtree_destroy(&radix_tree);
+}
