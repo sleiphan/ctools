@@ -31,30 +31,6 @@ static_assert(((CTOOLS_RTREE_INDEX)-1) > 0, "CTOOLS_RTREE_INDEX must be an unsig
 
 #ifndef RTREE_NO_INTERFACE
 
-struct RTREE_NAME;
-
-struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry);
-
-int __EXPAND_CONCAT(RTREE_NAME,
-                    _create)(struct RTREE_NAME *rtree,
-                             const struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) * entries,
-                             const CTOOLS_RTREE_INDEX entry_count);
-
-void __EXPAND_CONCAT(RTREE_NAME, _destroy)(struct RTREE_NAME *rtree);
-
-int __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree, const char *query_string,
-                                         const CTOOLS_RTREE_KEY query_string_length,
-                                         RTREE_VALUE *value_out);
-
-#endif // RTREE_NO_INTERFACE
-
-#ifndef RTREE_NO_IMPLEMENTATION
-
-#include <errno.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-
 struct __EXPAND_CONCAT(RTREE_NAME, _node) {
     // The next character in the string of the path
     // that this node represents.
@@ -71,14 +47,34 @@ struct __EXPAND_CONCAT(RTREE_NAME, _node) {
     RTREE_VALUE value;
 };
 
-struct RTREE_NAME {
-    struct __EXPAND_CONCAT(RTREE_NAME, _node) * nodes;
-};
+typedef struct __EXPAND_CONCAT(RTREE_NAME, _node) * RTREE_NAME;
 
 struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) {
     const char *str;
     RTREE_VALUE value;
 };
+
+int __EXPAND_CONCAT(RTREE_NAME, _min_size)(CTOOLS_RTREE_INDEX *min_size_out,
+                                           const CTOOLS_RTREE_INDEX entry_count);
+
+int __EXPAND_CONCAT(RTREE_NAME,
+                    _create)(RTREE_NAME rtree, const CTOOLS_RTREE_INDEX rtree_size,
+                             const struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) * entries,
+                             const CTOOLS_RTREE_INDEX entry_count,
+                             CTOOLS_RTREE_INDEX *rtree_size_result);
+
+int __EXPAND_CONCAT(RTREE_NAME, _search)(const RTREE_NAME rtree, const char *query_string,
+                                         const CTOOLS_RTREE_KEY query_string_length,
+                                         RTREE_VALUE *value_out);
+
+#endif // RTREE_NO_INTERFACE
+
+#ifndef RTREE_NO_IMPLEMENTATION
+
+#include <errno.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
 static const CTOOLS_RTREE_INDEX __EXPAND_CONCAT(RTREE_NAME,
                                                 _node_count_max) = ((CTOOLS_RTREE_INDEX)-1);
@@ -99,11 +95,40 @@ int __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _sort_entries_by_key_cmp)(co
                    __EXPAND_CONCAT(RTREE_NAME, _key_length_max));
 }
 
+int __EXPAND_CONCAT(RTREE_NAME, _min_size)(CTOOLS_RTREE_INDEX *min_size_out,
+                                           const CTOOLS_RTREE_INDEX entry_count) {
+    if (entry_count > __EXPAND_CONCAT(RTREE_NAME, _entry_count_max)) {
+        errno = EOVERFLOW;
+        return -1;
+    }
+
+    if (entry_count == 0 || min_size_out == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    bool edge_case = entry_count == __EXPAND_CONCAT(RTREE_NAME, _entry_count_max);
+    CTOOLS_RTREE_INDEX size = entry_count;
+    size -= edge_case;
+    size *= 2;
+    size -= 1;
+    size += edge_case * 2;
+
+    *min_size_out = size;
+    return 0;
+}
+
 CTOOLS_RTREE_INDEX __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _build_internal)(
     const struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) * entries,
-    const CTOOLS_RTREE_INDEX entry_count, struct __EXPAND_CONCAT(RTREE_NAME, _node) * *nodes,
-    CTOOLS_RTREE_INDEX *nodes_size, CTOOLS_RTREE_INDEX *nodes_capactity,
+    const CTOOLS_RTREE_INDEX entry_count, struct __EXPAND_CONCAT(RTREE_NAME, _node) * nodes,
+    CTOOLS_RTREE_INDEX *nodes_cursor, const CTOOLS_RTREE_INDEX nodes_capactity,
     const CTOOLS_RTREE_KEY key_idx) {
+
+    // Error out if there is no more space in the target array
+    if (*nodes_cursor >= nodes_capactity) {
+        errno = EINVAL;
+        return 0;
+    }
 
     // 1. Seek to first column with different characters
     // 2. Create a new node
@@ -139,35 +164,11 @@ CTOOLS_RTREE_INDEX __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _build_intern
         return 0;
     }
 
-    // Increase capacity if we are about to blow past it
-    if (*nodes_size == *nodes_capactity) {
-        const CTOOLS_RTREE_INDEX new_capacity =
-            *nodes_capactity >= __EXPAND_CONCAT(RTREE_NAME, _entry_count_max)
-                ? __EXPAND_CONCAT(RTREE_NAME, _node_count_max)
-                : *nodes_capactity * 2;
-
-        // If the capacity did not increase, error out
-        if (new_capacity <= *nodes_capactity) {
-            errno = EOVERFLOW;
-            return 0;
-        }
-
-        struct __EXPAND_CONCAT(RTREE_NAME, _node) *new_nodes =
-            (struct __EXPAND_CONCAT(RTREE_NAME, _node) *)realloc(
-                *nodes, new_capacity * sizeof(struct __EXPAND_CONCAT(RTREE_NAME, _node)));
-
-        if (!new_nodes)
-            return 0;
-
-        *nodes_capactity = new_capacity;
-        *nodes = new_nodes;
-    }
-
     const CTOOLS_RTREE_KEY key_length = current_key_char_idx - key_idx;
 
     // Create a new node
-    const CTOOLS_RTREE_INDEX active_node_idx = (*nodes_size)++;
-    (*nodes)[active_node_idx] = (struct __EXPAND_CONCAT(RTREE_NAME, _node)){
+    const CTOOLS_RTREE_INDEX active_node_idx = (*nodes_cursor)++;
+    nodes[active_node_idx] = (struct __EXPAND_CONCAT(RTREE_NAME, _node)){
         .character = entries->str[key_idx],
         .tree_size = 1, // Assume this is a leaf node
         .key_length = key_length,
@@ -193,24 +194,25 @@ CTOOLS_RTREE_INDEX __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _build_intern
         const CTOOLS_RTREE_INDEX num_new_nodes =
             __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME),
                             _build_internal)(&entries[range_begin], range_end - range_begin, nodes,
-                                             nodes_size, nodes_capactity, current_key_char_idx);
+                                             nodes_cursor, nodes_capactity, current_key_char_idx);
 
         // If the operation failed, exit
         if (!num_new_nodes)
             return num_new_nodes;
 
-        (*nodes)[active_node_idx].tree_size += num_new_nodes;
+        nodes[active_node_idx].tree_size += num_new_nodes;
 
         range_begin = range_end;
     }
 
-    return (*nodes)[active_node_idx].tree_size;
+    return nodes[active_node_idx].tree_size;
 }
 
 int __EXPAND_CONCAT(RTREE_NAME,
-                    _create)(struct RTREE_NAME *rtree,
+                    _create)(const RTREE_NAME rtree, const CTOOLS_RTREE_INDEX rtree_size,
                              const struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) * entries,
-                             const CTOOLS_RTREE_INDEX entry_count) {
+                             const CTOOLS_RTREE_INDEX entry_count,
+                             CTOOLS_RTREE_INDEX *rtree_size_result) {
 
     // Validate arguments
     if (rtree == NULL || entry_count == 0 || entries == NULL) {
@@ -248,8 +250,6 @@ int __EXPAND_CONCAT(RTREE_NAME,
         }
     }
 
-    static const CTOOLS_RTREE_INDEX INITIAL_NODE_CAPACITY = 8;
-
     struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) *sorted_entries =
         (struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry) *)malloc(
             entry_count * sizeof(struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry)));
@@ -257,42 +257,27 @@ int __EXPAND_CONCAT(RTREE_NAME,
     if (!sorted_entries)
         return -1;
 
-    struct __EXPAND_CONCAT(RTREE_NAME, _node) *nodes =
-        (struct __EXPAND_CONCAT(RTREE_NAME, _node) *)malloc(
-            INITIAL_NODE_CAPACITY * sizeof(struct __EXPAND_CONCAT(RTREE_NAME, _node)));
-
-    if (!nodes) {
-        free(sorted_entries);
-        return -1;
-    }
-
     memcpy(sorted_entries, entries,
            entry_count * sizeof(struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry)));
     qsort(sorted_entries, entry_count, sizeof(struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry)),
           __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _sort_entries_by_key_cmp));
 
-    CTOOLS_RTREE_INDEX node_count = 0;
-    CTOOLS_RTREE_INDEX node_capacity = INITIAL_NODE_CAPACITY;
+    CTOOLS_RTREE_INDEX node_cursor = 0;
     CTOOLS_RTREE_INDEX num_nodes = __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _build_internal)(
-        sorted_entries, entry_count, &nodes, &node_count, &node_capacity, 0);
+        sorted_entries, entry_count, rtree, &node_cursor, rtree_size, 0);
 
     free(sorted_entries);
 
-    if (!num_nodes) {
-        free(nodes);
+    if (!num_nodes)
         return -1;
-    }
 
-    *rtree = (struct RTREE_NAME){
-        .nodes = nodes,
-    };
+    if (rtree_size_result)
+        *rtree_size_result = num_nodes;
 
     return 0;
 }
 
-void __EXPAND_CONCAT(RTREE_NAME, _destroy)(struct RTREE_NAME *rtree) { free(rtree->nodes); }
-
-int __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree, const char *query_string,
+int __EXPAND_CONCAT(RTREE_NAME, _search)(const RTREE_NAME rtree, const char *query_string,
                                          const CTOOLS_RTREE_KEY query_string_length,
                                          RTREE_VALUE *value_out) {
     // Validate arguments
@@ -308,10 +293,10 @@ int __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree, const c
     CTOOLS_RTREE_INDEX current_node = 0;
 
     // Loop until we hit a leaf node.
-    while (rtree->nodes[current_node].tree_size > 1) {
+    while (rtree[current_node].tree_size > 1) {
 
         // Seek to to the character that this node's subnodes compares with.
-        query_string_it += rtree->nodes[current_node].key_length;
+        query_string_it += rtree[current_node].key_length;
 
         // If we have scanned the exact length of the query string, we have to return whatever value
         // registered in the current node. We might have reached a branching node that contains a
@@ -331,12 +316,12 @@ int __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree, const c
         CTOOLS_RTREE_INDEX matching_node = 0;
 
         // Define the ending bound of the current node's subtree.
-        const CTOOLS_RTREE_INDEX subtree_end = current_node + rtree->nodes[current_node].tree_size;
+        const CTOOLS_RTREE_INDEX subtree_end = current_node + rtree[current_node].tree_size;
 
         // Search for a subnode that matches with the query string
         for (CTOOLS_RTREE_INDEX subnode = current_node + 1;
-             !matching_node & (subnode < subtree_end); subnode += rtree->nodes[subnode].tree_size)
-            if (rtree->nodes[subnode].character == query_string[query_string_it])
+             !matching_node & (subnode < subtree_end); subnode += rtree[subnode].tree_size)
+            if (rtree[subnode].character == query_string[query_string_it])
                 matching_node = subnode;
 
         // If none of the subnodes match, the query string does not exist in this trie.
@@ -347,7 +332,7 @@ int __EXPAND_CONCAT(RTREE_NAME, _search)(const struct RTREE_NAME *rtree, const c
         current_node = matching_node;
     }
 
-    *value_out = rtree->nodes[current_node].value;
+    *value_out = rtree[current_node].value;
     return 1;
 }
 
