@@ -257,6 +257,14 @@ int __EXPAND_CONCAT(RTREE_NAME,
     if (!sorted_entries)
         return -1;
 
+    struct __EXPAND_CONCAT(RTREE_NAME, _node) *rtree_construction_area = (__EXPAND_CONCAT(
+        RTREE_NAME, _node) *)malloc(rtree_size * sizeof(struct __EXPAND_CONCAT(RTREE_NAME, _node)));
+
+    if (!rtree_construction_area) {
+        free(sorted_entries);
+        return -1;
+    }
+
     memcpy(sorted_entries, entries,
            entry_count * sizeof(struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry)));
     qsort(sorted_entries, entry_count, sizeof(struct __EXPAND_CONCAT(RTREE_NAME, _setup_entry)),
@@ -264,12 +272,17 @@ int __EXPAND_CONCAT(RTREE_NAME,
 
     CTOOLS_RTREE_INDEX node_cursor = 0;
     CTOOLS_RTREE_INDEX num_nodes = __EXPAND_CONCAT(__EXPAND_CONCAT(_, RTREE_NAME), _build_internal)(
-        sorted_entries, entry_count, rtree, &node_cursor, rtree_size, 0);
+        sorted_entries, entry_count, rtree_construction_area, &node_cursor, rtree_size, 0);
 
     free(sorted_entries);
 
-    if (!num_nodes)
+    if (!num_nodes) {
+        free(rtree_construction_area);
         return -1;
+    }
+
+    memcpy(rtree, rtree_construction_area, num_nodes * sizeof(__EXPAND_CONCAT(RTREE_NAME, _node)));
+    free(rtree_construction_area);
 
     if (rtree_size_result)
         *rtree_size_result = num_nodes;
